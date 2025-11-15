@@ -168,5 +168,5 @@ GET http://localhost:5000/api/share/song/2
 
 ### TEST API FROM MYSQL
 ### Lấy danh sách bài hát
-GET http://5000/api/songs
+GET http://192.168.1.189:5000/api/songs
 Accept: application/json
