@@ -12,7 +12,7 @@ const Song = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    url: {
+    audioUrl: {
       type: DataTypes.STRING,
       allowNull: false,
     },
@@ -20,6 +20,10 @@ const Song = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    album: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    }
   },
   {
     tableName: "songs",

@@ -1,0 +1,241 @@
+### Register
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "vu",
+  "email": "vu@gmail.com",
+  "password": "123456"
+}
+
+### Login
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "vu@gmail.com",
+  "password": "123456"
+}
+
+####################################################
+
+
+### 1. Tạo playlist mới
+POST http://localhost:5000/api/playlists
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+{
+  "name": "My Chill Vibes"
+}
+
+### 2. Lấy playlist của user
+GET http://localhost:5000/api/playlists/user/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+### 3. Cập nhật playlist
+PUT http://localhost:5000/api/playlists/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+Content-Type: application/json
+
+{
+  "name": "Updated Playlist Name"
+}
+
+### 4. Thêm bài hát vào playlist
+POST http://localhost:5000/api/playlists/1/songs
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+Content-Type: application/json
+
+{
+  "songId": 1
+}
+
+### 5. Lấy danh sách bài hát trong playlist
+GET http://localhost:5000/api/playlists/1/songs
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+
+###Lấy bài hát theo playlist
+GET http://localhost:5000/api/songs/playlist/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+###Lấy bài hát theo user
+GET http://localhost:5000/api/songs/user/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+###them bai hat
+### 🎵 Thêm bài hát vào playlist
+POST http://localhost:5000/api/playlists/1/songs
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+Content-Type: application/json
+
+{
+  "songId": 1
+}
+
+
+### 🎧 Lấy danh sách bài hát trong playlist
+GET http://localhost:5000/api/playlists/1/songs
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+### ❌ Xóa bài hát khỏi playlist
+DELETE http://localhost:5000/api/playlists/1/songs/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+
+### ----------FOLDER--------
+
+### 🟢 Tạo folder
+POST http://localhost:5000/api/folders
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+Content-Type: application/json
+
+{
+  "name": "Nhạc Chill"
+}
+
+### 🟡 Lấy danh sách folder
+GET http://localhost:5000/api/folders
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+### 🟠 Cập nhật tên folder
+PUT http://localhost:5000/api/folders/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+Content-Type: application/json
+
+{
+  "name": "Folder Chill buổi tối"
+}
+
+### 🔴 Xóa folder
+DELETE http://localhost:5000/api/folders/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+
+### 🟢 Thêm playlist vào folder
+POST http://localhost:5000/api/folder-playlists/2/playlists/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+### 🟡 Lấy tất cả playlist trong folder
+GET http://localhost:5000/api/folder-playlists/2/playlists
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+### 🔴 Gỡ playlist khỏi folder
+DELETE http://localhost:5000/api/folder-playlists/playlists/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjI1MjUwNjIsImV4cCI6MTc2MzEyOTg2Mn0.g3fh8yJV6jfib3pPLX_LLsPpdeAirS8r57OZ9m0mzmc
+
+
+
+
+
+
+
+
+### ----------profiles user--------
+### Tạo/Cập nhật hồ sơ
+POST http://localhost:5000/api/profile
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "avatar_url": "https://example.com/avatar.png",
+  "bio": "Nghe nhạc chill mỗi ngày 🎧"
+}
+
+### Lấy hồ sơ
+GET http://localhost:5000/api/profile/1
+
+### Bình luận bài hát
+POST http://localhost:5000/api/comments
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "song_id": 2,
+  "content": "Bài này nghe hay cực!"
+}
+
+### Lấy danh sách bình luận bài hát
+GET http://localhost:5000/api/comments?songId=2
+
+### Like bình luận
+POST http://localhost:5000/api/comments/1/like
+
+### Chia sẻ bài hát
+GET http://localhost:5000/api/share/song/2
+
+
+### TEST API FROM MYSQL
+### Lấy danh sách bài hát
+GET http://192.168.1.189:5000/api/songs
+Accept: application/json
+
+
+###CLOUDINARY UPLOAD
+
+####################################
+### Upload song (localhost)
+POST http://localhost:5000/api/songs/upload
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjMzOTA4MDYsImV4cCI6MTc2Mzk5NTYwNn0.YrQQt8CVXb4mlDHS-HiRRBDd12UfuQPB0ROqRxxIol0
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0g
+
+------WebKitFormBoundary7MA4YWxkTrZu0g
+Content-Disposition: form-data; name="title"
+
+Test Song
+------WebKitFormBoundary7MA4YWxkTrZu0g
+Content-Disposition: form-data; name="artist"
+
+Test Artist
+------WebKitFormBoundary7MA4YWxkTrZu0g
+Content-Disposition: form-data; name="album"
+
+My Album
+------WebKitFormBoundary7MA4YWxkTrZu0g
+Content-Disposition: form-data; name="audio"; filename="test.mp3"
+Content-Type: audio/mpeg
+
+< ./test-files/audio.mp3
+------WebKitFormBoundary7MA4YWxkTrZu0g
+Content-Disposition: form-data; name="image"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./test-files/cover.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0g--
+
+###
+# Nếu backend của bạn đã deploy trên Render, dùng URL deploy:
+POST https://music-app-backend-aijn.onrender.com/api/songs/upload
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjMzOTA4MDYsImV4cCI6MTc2Mzk5NTYwNn0.YrQQt8CVXb4mlDHS-HiRRBDd12UfuQPB0ROqRxxIol0
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0g
+
+------WebKitFormBoundary7MA4YWxkTrZu0g
+Content-Disposition: form-data; name="title"
+
+Test Song Render
+------WebKitFormBoundary7MA4YWxkTrZu0g
+Content-Disposition: form-data; name="artist"
+
+Test Artist
+------WebKitFormBoundary7MA4YWxkTrZu0g
+Content-Disposition: form-data; name="album"
+
+My Album
+------WebKitFormBoundary7MA4YWxkTrZu0g
+Content-Disposition: form-data; name="audio"; filename="audio.mp3"
+Content-Type: audio/mpeg
+
+< ./test-files/audio.mp3
+------WebKitFormBoundary7MA4YWxkTrZu0g
+Content-Disposition: form-data; name="image"; filename="cover.jpg"
+Content-Type: image/jpeg
+
+< ./test-files/cover.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0g--
+
+
+
+###
+http://localhost:5000/api/songs/playlist/1
+Authorization: Bearer <28112002>
