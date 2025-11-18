@@ -3,7 +3,9 @@ import User from "../models/user.model.js";
 import Playlist from "../models/playlist.model.js";
 import PlaylistSong from "../models/playlistSong.model.js";
 
+// ===============================
 // 🎵 Lấy tất cả bài hát
+// ===============================
 export const getAllSongs = async (req, res) => {
   try {
     const songs = await Song.findAll();
@@ -14,14 +16,15 @@ export const getAllSongs = async (req, res) => {
   }
 };
 
-// ➕ Thêm bài hát (có upload)
+// ===============================
+// ➕ Upload bài hát (Cloudinary)
+// ===============================
 export const addSong = async (req, res) => {
   try {
     const { title, artist, album } = req.body;
-    const audioFile = req.files?.audio?.[0];
-    const imageFile = req.files?.image?.[0];
+    const { imageUrl, audioUrl } = req.uploadedFiles;
 
-    if (!audioFile) {
+    if (!audioUrl) {
       return res.status(400).json({ message: "Audio file is required" });
     }
 
@@ -29,8 +32,8 @@ export const addSong = async (req, res) => {
       title,
       artist,
       album,
-      audioUrl: `/uploads/audio/${audioFile.filename}`,
-      imageUrl: imageFile ? `/uploads/images/${imageFile.filename}` : null,
+      url: audioUrl,
+      imageUrl: imageUrl,
     });
 
     res.status(201).json({ message: "Song added successfully", song });
@@ -40,16 +43,16 @@ export const addSong = async (req, res) => {
   }
 };
 
+// ===============================
 // ✏️ Cập nhật bài hát
+// ===============================
 export const updateSong = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, artist, album, audioUrl, imageUrl } = req.body;
-    const song = await Song.findByPk(id);
 
-    if (!song) {
-      return res.status(404).json({ message: "Song not found" });
-    }
+    const song = await Song.findByPk(id);
+    if (!song) return res.status(404).json({ message: "Song not found" });
 
     Object.assign(song, { title, artist, album, audioUrl, imageUrl });
     await song.save();
@@ -61,15 +64,15 @@ export const updateSong = async (req, res) => {
   }
 };
 
+// ===============================
 // ❌ Xóa bài hát
+// ===============================
 export const deleteSong = async (req, res) => {
   try {
     const { id } = req.params;
     const song = await Song.findByPk(id);
 
-    if (!song) {
-      return res.status(404).json({ message: "Song not found" });
-    }
+    if (!song) return res.status(404).json({ message: "Song not found" });
 
     await song.destroy();
     res.json({ message: "Song deleted successfully" });
@@ -79,20 +82,18 @@ export const deleteSong = async (req, res) => {
   }
 };
 
-// 🎵 Lấy danh sách bài hát theo playlist
+// ===============================
+// 🎧 Lấy bài hát theo playlist
+// ===============================
 export const getSongsByPlaylist = async (req, res) => {
   try {
     const { playlistId } = req.params;
+
     const playlist = await Playlist.findByPk(playlistId, {
-      include: {
-        model: Song,
-        through: { attributes: [] }, // bỏ dữ liệu bảng trung gian
-      },
+      include: { model: Song, through: { attributes: [] } },
     });
 
-    if (!playlist) {
-      return res.status(404).json({ message: "Playlist not found" });
-    }
+    if (!playlist) return res.status(404).json({ message: "Playlist not found" });
 
     res.json(playlist.Songs || []);
   } catch (error) {
@@ -101,7 +102,9 @@ export const getSongsByPlaylist = async (req, res) => {
   }
 };
 
-// 👤 Lấy tất cả bài hát của 1 user (qua tất cả playlist)
+// ===============================
+// 👤 Lấy bài hát theo user
+// ===============================
 export const getSongsByUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -110,25 +113,17 @@ export const getSongsByUser = async (req, res) => {
       include: [
         {
           model: Playlist,
-          include: [
-            {
-              model: Song,
-              through: { attributes: [] },
-            },
-          ],
+          include: [{ model: Song, through: { attributes: [] } }],
         },
       ],
     });
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Gom tất cả bài hát từ các playlist của user
     const allSongs =
-      user.Playlists?.flatMap((playlist) => playlist.Songs || []) || [];
+      user.Playlists.flatMap((playlist) => playlist.Songs || []) || [];
 
-    return res.json(allSongs);
+    res.json(allSongs);
   } catch (error) {
     console.error("Error in getSongsByUser:", error);
     res.status(500).json({ message: "Server error", error: error.message });

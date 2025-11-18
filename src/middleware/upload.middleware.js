@@ -1,42 +1,45 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import cloudinary from "../config/cloudinary.js";
 
-// Đảm bảo thư mục upload tồn tại
-const ensureDir = (dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-};
-
-// Cấu hình nơi lưu file
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    let folder = "uploads/others";
-    if (file.fieldname === "audio") folder = "uploads/audio";
-    if (file.fieldname === "image") folder = "uploads/images";
-
-    ensureDir(folder);
-    cb(null, folder);
-  },
-  filename: function (req, file, cb) {
-    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, unique + path.extname(file.originalname));
+// Storage cho hình ảnh
+const imageStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "music-player-images",
+    allowed_formats: ["jpg", "png", "jpeg"],
   },
 });
 
-// Chỉ chấp nhận định dạng hợp lệ
-const fileFilter = (req, file, cb) => {
-  const allowedAudio = [".mp3", ".wav"];
-  const allowedImage = [".jpg", ".jpeg", ".png"];
-  const ext = path.extname(file.originalname).toLowerCase();
+// Storage cho file nhạc
+const audioStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "music-player-audio",
+    resource_type: "video", // để upload mp3/wav/m4a
+    allowed_formats: ["mp3", "wav", "m4a"],
+  },
+});
 
-  if (
-    (file.fieldname === "audio" && allowedAudio.includes(ext)) ||
-    (file.fieldname === "image" && allowedImage.includes(ext))
-  ) {
-    cb(null, true);
-  } else {
-    cb(new Error("Invalid file type"), false);
-  }
+const uploadImage = multer({ storage: imageStorage });
+const uploadAudio = multer({ storage: audioStorage });
+
+/**
+ * 🟩 Middleware upload image + audio cùng lúc
+ */
+export const uploadFiles = async (req, res, next) => {
+  uploadImage.single("image")(req, res, function (err) {
+    if (err) return res.status(400).json({ message: "Image upload error", error: err });
+
+    uploadAudio.single("audio")(req, res, function (err2) {
+      if (err2) return res.status(400).json({ message: "Audio upload error", error: err2 });
+
+      req.uploadedFiles = {
+        imageUrl: req.file?.path || null,
+        audioUrl: req.files?.audio?.[0]?.path || null,
+      };
+
+      next();
+    });
+  });
 };
-
-export const upload = multer({ storage, fileFilter });
