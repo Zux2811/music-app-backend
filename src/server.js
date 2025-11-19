@@ -126,6 +126,12 @@ Playlist.belongsTo(User);
 User.hasMany(Folder, { onDelete: "CASCADE" });
 Folder.belongsTo(User);
 
+User.hasMany(Comment, { foreignKey: "user_id" });
+Comment.belongsTo(User, { foreignKey: "user_id" });
+
+User.hasOne(UserProfile, { foreignKey: "user_id" });
+UserProfile.belongsTo(User, { foreignKey: "user_id" });
+
 Folder.hasMany(Playlist, { onDelete: "CASCADE" });
 Playlist.belongsTo(Folder);
 
