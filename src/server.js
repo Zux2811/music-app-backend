@@ -161,7 +161,8 @@ app.use("/api/upload", uploadRoutes);
 // DB Sync + Server
 // ===================
 sequelize
-  .sync({ alter: true })
+  // .sync({ alter: true })
+  .sync()
   .then(() => console.log("Database synced successfully!"))
   .catch((err) => console.error("Error syncing database:", err));
 
