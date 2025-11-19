@@ -2,10 +2,8 @@ import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
 
 const Folder = sequelize.define("Folder", {
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  name: { type: DataTypes.STRING, allowNull: false },
 });
 
 export default Folder;
