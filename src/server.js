@@ -92,6 +92,7 @@ import Song from "./models/song.model.js";
 import Playlist from "./models/playlist.model.js";
 import Folder from "./models/folder.model.js";
 import PlaylistSong from "./models/playlistSong.model.js";
+import Comment from "./models/comment.model.js";
 
 // ========== Routes ==========
 import authRoutes from "./routes/auth.routes.js";
