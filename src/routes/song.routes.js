@@ -18,7 +18,7 @@ router.get("/", getAllSongs);
 router.get("/playlist/:playlistId", verifyToken, getSongsByPlaylist);
 router.get("/user/:userId", verifyToken, getSongsByUser);
 
-// Upload Cloudinary
+// Upload Cloudinary (image + audio)
 router.post("/upload", verifyToken, uploadFiles, addSong);
 
 router.put("/:id", verifyToken, updateSong);

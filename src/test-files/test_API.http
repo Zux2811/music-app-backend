@@ -174,11 +174,36 @@ Accept: application/json
 
 ###CLOUDINARY UPLOAD
 
+
+
+
+POST https://music-app-backend-aijn.onrender.com/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "vu",
+  "email": "vu@gmail.com",
+  "password": "123456"
+}
+
+
+### Login
+POST https://music-app-backend-aijn.onrender.com/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "vu@gmail.com",
+  "password": "123456"
+}
+
+######
+#### Token #### eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjMzOTA4MDYsImV4cCI6MTc2Mzk5NTYwNn0.YrQQt8CVXb4mlDHS-HiRRBDd12UfuQPB0ROqRxxIol0
 ####################################
 ### Upload song (localhost)
 ### 🟢 Test Upload Song (image + audio)
+### 🟢 Test Upload Song (image + audio)
 POST https://music-app-backend-aijn.onrender.com/api/songs/upload
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjMzOTA4MDYsImV4cCI6MTc2Mzk5NTYwNn0.YrQQt8CVXb4mlDHS-HiRRBDd12UfuQPB0ROqRxxIol0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjM1NjA0NzAsImV4cCI6MTc2NDE2NTI3MH0.f0oMmyC_vplnMeTTnTApaK2GViwOO7ixeRDqUXj4yUo
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
@@ -197,12 +222,12 @@ Different World
 Content-Disposition: form-data; name="image"; filename="cover.jpg"
 Content-Type: image/jpeg
 
-< ./files/cover.jpg
+< cover.jpg
 --WebAppBoundary
 Content-Disposition: form-data; name="audio"; filename="song.mp3"
 Content-Type: audio/mpeg
 
-< ./files/song.mp3
+< song.mp3
 --WebAppBoundary--
 
 
