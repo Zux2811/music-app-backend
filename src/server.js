@@ -88,6 +88,7 @@ import sequelize from "./config/db.js";
 
 // ========== Models ==========
 import User from "./models/user.model.js";
+import UserProfile from "./models/userProfile.model.js";
 import Song from "./models/song.model.js";
 import Playlist from "./models/playlist.model.js";
 import Folder from "./models/folder.model.js";
