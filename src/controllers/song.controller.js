@@ -1,7 +1,6 @@
 import Song from "../models/song.model.js";
 import User from "../models/user.model.js";
 import Playlist from "../models/playlist.model.js";
-import Song from "../models/song.model.js";
 
 // ===============================
 // 🎵 Lấy tất cả bài hát
