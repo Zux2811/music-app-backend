@@ -5,10 +5,12 @@ import cloudinary from "../config/cloudinary.js";
 
 const router = express.Router();
 
+// Storage dùng để test upload file bất kỳ
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "music_app",
+    folder: "music_app_test_upload",
+    resource_type: "auto"
   },
 });
 
@@ -16,9 +18,10 @@ const upload = multer({ storage });
 
 router.post("/", upload.single("file"), (req, res) => {
   try {
-    res.json({
+    return res.json({
+      message: "Upload success",
       url: req.file.path,
-      public_id: req.file.filename
+      public_id: req.file.filename,
     });
   } catch (err) {
     console.error(err);

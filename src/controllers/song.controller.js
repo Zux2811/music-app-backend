@@ -1,7 +1,7 @@
 import Song from "../models/song.model.js";
 import User from "../models/user.model.js";
 import Playlist from "../models/playlist.model.js";
-import PlaylistSong from "../models/playlistSong.model.js";
+import Song from "../models/song.model.js";
 
 // ===============================
 // 🎵 Lấy tất cả bài hát
@@ -28,18 +28,23 @@ export const addSong = async (req, res) => {
       return res.status(400).json({ message: "Audio file is required" });
     }
 
-    const song = await Song.create({
+    const newSong = await Song.create({
       title,
       artist,
       album,
       url: audioUrl,
-      imageUrl: imageUrl,
+      imageUrl: imageUrl || null,
     });
 
-    res.status(201).json({ message: "Song added successfully", song });
+    res.status(201).json({
+      message: "Song uploaded successfully",
+      song: newSong,
+    });
   } catch (error) {
-    console.error("Error adding song:", error);
-    res.status(500).json({ message: "Error adding song", error: error.message });
+    res.status(500).json({
+      message: "Error adding song",
+      error: error.message,
+    });
   }
 };
 
