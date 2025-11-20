@@ -1,32 +1,64 @@
 import express from "express";
 import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "../config/cloudinary.js";
+import { v2 as cloudinary } from "cloudinary";
+import streamifier from "streamifier";
+import db from "../config/db.js";
 
 const router = express.Router();
+const upload = multer(); // memory storage
 
-// Storage dùng để test upload file bất kỳ
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "music_app_test_upload",
-    resource_type: "auto"
-  },
-});
-
-const upload = multer({ storage });
-
-router.post("/", upload.single("file"), (req, res) => {
-  try {
-    return res.json({
-      message: "Upload success",
-      url: req.file.path,
-      public_id: req.file.filename,
+const uploadBuffer = (buffer, options) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (err, result) => {
+      if (err) return reject(err);
+      resolve(result);
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Upload failed" });
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
+};
+
+router.post(
+  "/upload",
+  upload.fields([{ name: "audio" }, { name: "image" }]),
+  async (req, res) => {
+    try {
+      const { title, artist, album } = req.body;
+
+      let audio_url = null;
+      let image_url = null;
+
+      if (req.files.audio) {
+        const result = await uploadBuffer(req.files.audio[0].buffer, {
+          resource_type: "video",
+          folder: "music_app/audio",
+        });
+        audio_url = result.secure_url;
+      }
+
+      if (req.files.image) {
+        const result = await uploadBuffer(req.files.image[0].buffer, {
+          resource_type: "image",
+          folder: "music_app/images",
+        });
+        image_url = result.secure_url;
+      }
+
+      await db.query(
+        `INSERT INTO songs (title, artist, album, image_url, audio_url, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+        [title, artist, album, image_url, audio_url]
+      );
+
+      res.json({
+        message: "Uploaded successfully",
+        audio_url,
+        image_url,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
   }
-});
+);
 
 export default router;
