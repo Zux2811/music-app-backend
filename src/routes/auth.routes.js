@@ -1,29 +1,31 @@
 import express from "express";
-import { register, login } from "../controllers/auth.controller.js";
-// const router = express.Router();
-
-// router.post("/register", register);
-// router.post("/login", login);
-
-// export default router;
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import db from "../config/db.js";
 
 const router = express.Router();
 
+// ---------------- REGISTER ----------------
 router.post("/register", (req, res) => {
   const { email, password } = req.body;
 
-  const hash = bcrypt.hashSync(password, 10);
+  try {
+    const hash = bcrypt.hashSync(password, 10);
 
-  db.query(
-    "INSERT INTO users (email, password) VALUES (?, ?)",
-    [email, hash],
-    (err) => {
-      if (err) return res.status(500).json(err);
-      res.json({ message: "User registered" });
-    }
-  );
+    db.query(
+      "INSERT INTO users (email, password) VALUES (?, ?)",
+      [email, hash],
+      (err) => {
+        if (err) return res.status(500).json({ error: err });
+        res.json({ message: "User registered" });
+      }
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
+// ---------------- LOGIN ----------------
 router.post("/login", (req, res) => {
   const { email, password } = req.body;
 
@@ -31,14 +33,19 @@ router.post("/login", (req, res) => {
     "SELECT * FROM users WHERE email = ?",
     [email],
     (err, result) => {
-      if (err || result.length === 0)
+      if (err) return res.status(500).json({ error: err });
+
+      if (result.length === 0)
         return res.status(400).json({ message: "User not found" });
 
       const user = result[0];
 
-      if (!bcrypt.compareSync(password, user.password))
+      // Compare password
+      const isMatch = bcrypt.compareSync(password, user.password);
+      if (!isMatch)
         return res.status(400).json({ message: "Wrong password" });
 
+      // Create token
       const token = jwt.sign(
         { id: user.id, email: user.email },
         process.env.JWT_SECRET,
@@ -50,5 +57,4 @@ router.post("/login", (req, res) => {
   );
 });
 
-// module.exports = router;
 export default router;
