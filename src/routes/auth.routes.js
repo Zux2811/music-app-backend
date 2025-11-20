@@ -1,3 +1,4 @@
+// src/routes/auth.routes.js
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -5,56 +6,70 @@ import db from "../config/db.js";
 
 const router = express.Router();
 
-// ---------------- REGISTER ----------------
-router.post("/register", (req, res) => {
-  const { email, password } = req.body;
+router.post("/register", async (req, res) => {
+  const { username, email, password } = req.body;
+
+  if (!username || !email || !password)
+    return res.status(400).json({ message: "Missing fields" });
 
   try {
-    const hash = bcrypt.hashSync(password, 10);
-
-    db.query(
-      "INSERT INTO users (email, password) VALUES (?, ?)",
-      [email, hash],
-      (err) => {
-        if (err) return res.status(500).json({ error: err });
-        res.json({ message: "User registered" });
-      }
+    // check email exists
+    const [exists] = await db.query(
+      "SELECT id FROM users WHERE email = ?",
+      [email]
     );
+
+    if (exists.length > 0)
+      return res.status(400).json({ message: "Email already registered" });
+
+    const hash = await bcrypt.hash(password, 10);
+
+    // INSERT INTO users
+    await db.query(
+      `INSERT INTO users (username, email, password, createdAt, updatedAt)
+       VALUES (?, ?, ?, NOW(), NOW())`,
+      [username, email, hash]
+    );
+
+    return res.json({ message: "User registered successfully" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Register error:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
-// ---------------- LOGIN ----------------
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  db.query(
-    "SELECT * FROM users WHERE email = ?",
-    [email],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err });
+  if (!email || !password)
+    return res.status(400).json({ message: "Missing email or password" });
 
-      if (result.length === 0)
-        return res.status(400).json({ message: "User not found" });
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
 
-      const user = result[0];
+    if (rows.length === 0)
+      return res.status(400).json({ message: "User not found" });
 
-      // Compare password
-      const isMatch = bcrypt.compareSync(password, user.password);
-      if (!isMatch)
-        return res.status(400).json({ message: "Wrong password" });
+    const user = rows[0];
 
-      // Create token
-      const token = jwt.sign(
-        { id: user.id, email: user.email },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
+    const match = await bcrypt.compare(password, user.password);
+    if (!match)
+      return res.status(400).json({ message: "Wrong password" });
 
-      res.json({ token });
-    }
-  );
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.json({ token });
+  } catch (err) {
+    console.error("Login error:", err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;
