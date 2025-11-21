@@ -209,28 +209,17 @@ POST https://music-app-backend-aijn.onrender.com/api/songs/upload
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjM2OTU5NTMsImV4cCI6MTc2NDMwMDc1M30.TiR8yYiIvlf8U5BW1PV7XUQb-jBH5p7Py7O3TUHn0Q4
 Content-Type: multipart/form-data
 
---boundary
-Content-Disposition: form-data; name="title"
-
-Faded
---boundary
-Content-Disposition: form-data; name="artist"
-
-Alan Walker
---boundary
-Content-Disposition: form-data; name="album"
-
-Different World
---boundary
-Content-Disposition: form-data; name="image"; filename="cover.jpg"
-Content-Type: image/jpeg
-
-< test-files/cover.jpg
---boundary
-Content-Disposition: form-data; name="audio"; filename="song.mp3"
-Content-Type: audio/mpeg
-
-< test-files/song.mp3
---boundary--
+title: Faded
+artist: Alan Walker
+album: Different World
+image: ./test-files/cover.jpg
+audio: ./test-files/song.mp3
 
 ###
+curl -X POST "https://music-app-backend-aijn.onrender.com/api/songs/upload" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ2dUBnbWFpbC5jb20iLCJpYXQiOjE3NjM2OTU5NTMsImV4cCI6MTc2NDMwMDc1M30.TiR8yYiIvlf8U5BW1PV7XUQb-jBH5p7Py7O3TUHn0Q4" \
+  -F "title=Faded" \
+  -F "artist=Alan Walker" \
+  -F "album=Different World" \
+  -F "image=@test-files/cover.jpg" \
+  -F "audio=@test-files/song.mp3"

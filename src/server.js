@@ -1,42 +1,38 @@
+// src/server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import sequelize from "./config/db.js";
-import "./models/index.js"; // load all models + associations automatically
+import "./models/index.js"; // load models & associations
 import authRoutes from "./routes/auth.routes.js";
 import songRoutes from "./routes/song.routes.js";
-import uploadRoutes from "./routes/upload.routes.js";
 
 dotenv.config();
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// test server
 app.get("/", (req, res) => res.json({ status: "ok", time: new Date() }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/songs", songRoutes);
-app.use("/api/upload", uploadRoutes);
 
-// connect DB + sync models
+// connect + sync
 (async () => {
   try {
     await sequelize.authenticate();
-    console.log("MySQL connected with Sequelize.");
-
-    await sequelize.sync(); // tự tạo bảng nếu chưa có
-    console.log("Database synced.");
+    console.log("Sequelize connected.");
+    await sequelize.sync({ alter: true }); // alter:true để cập nhật schema nhẹ — dùng { force: false } hoặc remove trên prod
+    console.log("DB synced.");
   } catch (err) {
-    console.error("DB error:", err.message);
+    console.error("DB connection/sync error:", err);
   }
 })();
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
 
 
 // // src/server.js
