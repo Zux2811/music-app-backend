@@ -24,15 +24,15 @@ router.post(
     try {
       const { title, artist, album } = req.body;
 
-      let audio_url = null;
-      let image_url = null;
+      let audioUrl = null;
+      let imageUrl = null;
 
       if (req.files.audio) {
         const result = await uploadBuffer(req.files.audio[0].buffer, {
           resource_type: "video",
           folder: "music_app/audio",
         });
-        audio_url = result.secure_url;
+        audioUrl = result.secure_url;
       }
 
       if (req.files.image) {
@@ -40,19 +40,19 @@ router.post(
           resource_type: "image",
           folder: "music_app/images",
         });
-        image_url = result.secure_url;
+        imageUrl = result.secure_url;
       }
 
       await db.query(
-        `INSERT INTO songs (title, artist, album, image_url, audio_url, createdAt, updatedAt)
+        `INSERT INTO songs (title, artist, album, imageUrl, audioUrl, createdAt, updatedAt)
          VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
-        [title, artist, album, image_url, audio_url]
+        [title, artist, album, imageUrl, audioUrl]
       );
 
       res.json({
         message: "Uploaded successfully",
-        audio_url,
-        image_url,
+        audioUrl,
+        imageUrl,
       });
     } catch (err) {
       console.error(err);

@@ -33,27 +33,34 @@ router.post(
   async (req, res) => {
     try {
       const files = req.files || {};
-      let audio_url = null;
-      let image_url = null;
+      let audioUrl = null;
+      let imageUrl = null;
 
       if (files.audio && files.audio[0]) {
-        const r = await uploadBuffer(files.audio[0].buffer, { resource_type: "auto", folder: "music_app/audio" });
-        audio_url = r.secure_url || r.url;
+        const r = await uploadBuffer(files.audio[0].buffer, {
+          resource_type: "video",
+          folder: "music_app/audio"
+        });
+        audioUrl = r.secure_url || r.url;
       }
 
       if (files.image && files.image[0]) {
-        const r = await uploadBuffer(files.image[0].buffer, { resource_type: "image", folder: "music_app/images" });
-        image_url = r.secure_url || r.url;
+        const r = await uploadBuffer(files.image[0].buffer, {
+          resource_type: "image",
+          folder: "music_app/images"
+        });
+        imageUrl = r.secure_url || r.url;
       }
 
-      const { title = "Unknown", artist = "Unknown" } = req.body;
+      const { title = "Unknown", artist = "Unknown", album = null } = req.body;
 
       await db.query(
-        "INSERT INTO songs (title, artist, image_url, audio_url) VALUES (?, ?, ?, ?)",
-        [title, artist, image_url, audio_url]
+        `INSERT INTO songs (title, artist, album, imageUrl, audioUrl, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+        [title, artist, album, imageUrl, audioUrl]
       );
 
-      return res.json({ message: "Uploaded", audio_url, image_url });
+      return res.json({ message: "Uploaded", audioUrl, imageUrl });
     } catch (err) {
       console.error("Upload error:", err);
       return res.status(500).json({ error: err.message || err });
@@ -61,7 +68,7 @@ router.post(
   }
 );
 
-// get songs
+// get all songs
 router.get("/", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM songs ORDER BY id DESC");
