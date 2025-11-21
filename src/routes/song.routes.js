@@ -41,7 +41,7 @@ router.post(
       // audio -> phải dùng raw cho mp3
       if (files.audio && files.audio[0]) {
         const result = await uploadBuffer(files.audio[0].buffer, {
-          resource_type: "video", // FIX QUAN TRỌNG
+          resource_type: "auto", // FIX QUAN TRỌNG
           folder: "music_app/audio",
         });
         audioUrl = result.secure_url || result.url;
@@ -50,7 +50,7 @@ router.post(
       // image
       if (files.image && files.image[0]) {
         const result = await uploadBuffer(files.image[0].buffer, {
-          resource_type: "image",
+          resource_type: "auto",
           folder: "music_app/images",
         });
         imageUrl = result.secure_url || result.url;
