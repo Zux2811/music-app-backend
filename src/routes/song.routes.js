@@ -16,7 +16,7 @@ cloudinary.config({
 });
 
 const router = express.Router();
-const upload = multer(); // memory storage
+const upload = multer(); // memory
 
 const uploadBuffer = (buffer, options = {}) =>
   new Promise((resolve, reject) => {
@@ -28,10 +28,9 @@ const uploadBuffer = (buffer, options = {}) =>
   });
 
 // POST /api/songs/upload
-// yêu cầu multipart/form-data fields: audio, image (file), title, artist, album (text)
 router.post(
   "/upload",
-  authMiddleware, // chỉ cho user đã login upload — nếu muốn mở công cộng, bỏ dòng này
+  authMiddleware,
   upload.fields([{ name: "audio" }, { name: "image" }]),
   async (req, res) => {
     try {
@@ -39,11 +38,10 @@ router.post(
       let audioUrl = null;
       let imageUrl = null;
 
-      // audio
+      // audio -> phải dùng raw cho mp3
       if (files.audio && files.audio[0]) {
-        // dùng resource_type: "video" hoặc "auto" — audio thường phải "video"
         const result = await uploadBuffer(files.audio[0].buffer, {
-          resource_type: "video",
+          resource_type: "raw", // FIX QUAN TRỌNG
           folder: "music_app/audio",
         });
         audioUrl = result.secure_url || result.url;
@@ -71,14 +69,13 @@ router.post(
       return res.status(201).json({ message: "Uploaded", song });
     } catch (err) {
       console.error("Upload error:", err);
-      // Cloudinary 400 -> show message
       if (err.http_code) return res.status(err.http_code).json({ error: err.message });
       return res.status(500).json({ error: err.message || "Upload failed" });
     }
   }
 );
 
-// GET all songs
+// GET /api/songs
 router.get("/", async (req, res) => {
   try {
     const songs = await Song.findAll({ order: [["id", "DESC"]] });
