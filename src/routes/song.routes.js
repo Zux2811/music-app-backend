@@ -1,4 +1,3 @@
-// src/routes/song.routes.js
 import express from "express";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
@@ -16,18 +15,18 @@ cloudinary.config({
 });
 
 const router = express.Router();
-const upload = multer(); // memory
+const upload = multer();
 
-const uploadBuffer = (buffer, options = {}) =>
+const uploadBuffer = (buffer, opts = {}) =>
   new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(options, (err, result) => {
+    const stream = cloudinary.uploader.upload_stream(opts, (err, result) => {
       if (err) return reject(err);
       resolve(result);
     });
+
     streamifier.createReadStream(buffer).pipe(stream);
   });
 
-// POST /api/songs/upload
 router.post(
   "/upload",
   authMiddleware,
@@ -38,25 +37,23 @@ router.post(
       let audioUrl = null;
       let imageUrl = null;
 
-      // audio -> phải dùng raw cho mp3
-      if (files.audio && files.audio[0]) {
+      if (files.audio?.[0]) {
         const result = await uploadBuffer(files.audio[0].buffer, {
-          resource_type: "auto", // FIX QUAN TRỌNG
+          resource_type: "auto",
           folder: "music_app/audio",
         });
-        audioUrl = result.secure_url || result.url;
+        audioUrl = result.secure_url;
       }
 
-      // image
-      if (files.image && files.image[0]) {
+      if (files.image?.[0]) {
         const result = await uploadBuffer(files.image[0].buffer, {
           resource_type: "auto",
           folder: "music_app/images",
         });
-        imageUrl = result.secure_url || result.url;
+        imageUrl = result.secure_url;
       }
 
-      const { title = "Unknown", artist = "Unknown", album = null } = req.body;
+      const { title, artist, album } = req.body;
 
       const song = await Song.create({
         title,
@@ -66,24 +63,17 @@ router.post(
         imageUrl,
       });
 
-      return res.status(201).json({ message: "Uploaded", song });
+      res.status(201).json({ message: "Uploaded", song });
     } catch (err) {
       console.error("Upload error:", err);
-      if (err.http_code) return res.status(err.http_code).json({ error: err.message });
-      return res.status(500).json({ error: err.message || "Upload failed" });
+      return res.status(500).json({ error: err.message });
     }
   }
 );
 
-// GET /api/songs
 router.get("/", async (req, res) => {
-  try {
-    const songs = await Song.findAll({ order: [["id", "DESC"]] });
-    res.json(songs);
-  } catch (err) {
-    console.error("Get songs error:", err);
-    res.status(500).json({ error: err.message });
-  }
+  const songs = await Song.findAll({ order: [["id", "DESC"]] });
+  res.json(songs);
 });
 
 export default router;
