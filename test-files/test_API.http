@@ -2,8 +2,8 @@ POST https://music-app-backend-aijn.onrender.com/api/auth/register
 Content-Type: application/json
 
 {
-  "username": "vu",
-  "email": "vu@gmail.com",
+  "username": "test",
+  "email": "test2@gmail.com",
   "password": "123456"
 }
 
