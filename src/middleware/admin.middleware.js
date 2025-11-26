@@ -9,14 +9,13 @@ export default function adminAuth(req, res, next) {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (!decoded.role || decoded.role !== "admin") {
+    if (decoded.role !== "admin") {
       return res.status(403).json({ message: "You are not admin" });
     }
 
     req.user = decoded;
-
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Unauthorized", err });
+    return res.status(401).json({ message: "Unauthorized", error: err });
   }
 }

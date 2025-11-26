@@ -67,7 +67,8 @@ app.use("/api/comments", commentRoutes);
   try {
     await sequelize.authenticate();
     console.log("Sequelize connected.");
-    await sequelize.sync({ alter: true });
+    // await sequelize.sync({ alter: true });
+    await sequelize.sync();
     console.log("DB synced.");
   } catch (err) {
     console.error("DB connection/sync error:", err);

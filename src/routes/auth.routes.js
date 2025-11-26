@@ -78,8 +78,10 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
+import { OAuth2Client } from "google-auth-library";
 
 const router = express.Router();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
@@ -129,6 +131,52 @@ router.post("/login", async (req, res) => {
   } catch (err) {
     console.error("Login error:", err);
     return res.status(500).json({ error: err.message });
+  }
+});
+
+// Google Sign-In: verify ID token and issue app JWT
+router.post("/google", async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) return res.status(400).json({ message: "Missing idToken" });
+
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ message: "Server missing GOOGLE_CLIENT_ID" });
+    }
+
+    // Verify Google ID token
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    const email = payload?.email;
+    const name = payload?.name || email?.split("@")[0];
+    if (!email) return res.status(400).json({ message: "Cannot extract email from Google token" });
+
+    // Find or create user
+    let user = await User.findOne({ where: { email } });
+    if (!user) {
+      user = await User.create({
+        username: name,
+        email,
+        password: "", // no local password for social accounts
+        role: "user",
+      });
+    }
+
+    // Issue our JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.json({ token });
+  } catch (err) {
+    console.error("Google login error:", err);
+    return res.status(500).json({ message: "Google login failed", error: err.message });
   }
 });
 

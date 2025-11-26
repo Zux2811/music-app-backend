@@ -1,47 +1,123 @@
-// src/controllers/admin.controller.js
-import db from "../config/db.js";
+import User from "../models/user.model.js";
+import Report from "../models/report.model.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-export const getAllUsers = async (req, res) => {
+// =======================
+// 1. LOGIN ADMIN
+// =======================
+export const loginAdmin = async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT id, username, email, role FROM users");
-    res.json(rows);
+    const { email, password } = req.body;
+
+    // Sửa: Dùng { where: { email } } cho Sequelize
+    const admin = await User.findOne({ where: { email } });
+    if (!admin) {
+      return res.status(400).json({ message: "Sai tài khoản hoặc mật khẩu" });
+    }
+
+    // Kiểm tra role
+    if (admin.role !== "admin") {
+      return res.status(403).json({ message: "Bạn không phải admin" });
+    }
+
+    // Kiểm tra mật khẩu
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Sai tài khoản hoặc mật khẩu" });
+    }
+
+    // Sửa: Dùng admin.id thay vì admin._id (Sequelize)
+    const token = jwt.sign(
+      { id: admin.id, role: admin.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      message: "Đăng nhập admin thành công",
+      token,
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        email: admin.email,
+        role: admin.role
+      }
+    });
   } catch (err) {
-    res.status(500).json({ message: "Error fetching users", error: err });
+    res.status(500).json({ message: "Lỗi server", error: err });
   }
 };
 
+// =======================
+// 2. LẤY TẤT CẢ USER
+// =======================
+export const getAllUsers = async (req, res) => {
+  try {
+    // Sửa: Dùng Sequelize findAll thay vì MongoDB find
+    const users = await User.findAll({
+      where: { role: "user" },
+      attributes: { exclude: ["password"] }
+    });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi server", error: err });
+  }
+};
+
+// =======================
+// 3. XÓA USER
+// =======================
 export const deleteUser = async (req, res) => {
   try {
     const id = req.params.id;
 
-    await db.query("DELETE FROM users WHERE id = ?", [id]);
+    // Sửa: Dùng Sequelize destroy thay vì MongoDB findByIdAndDelete
+    await User.destroy({ where: { id } });
 
-    res.json({ message: "User deleted successfully" });
+    res.json({ message: "Xóa người dùng thành công" });
+
   } catch (err) {
-    res.status(500).json({ message: "Error deleting user", error: err });
+    res.status(500).json({ message: "Lỗi server", error: err });
   }
 };
 
+// =======================
+// 4. LẤY DANH SÁCH REPORT
+// =======================
 export const getAllReports = async (req, res) => {
   try {
-    const [rows] = await db.query(
-      "SELECT r.id, r.message, r.status, u.username AS reported_by FROM reports r JOIN users u ON u.id = r.user_id"
-    );
-
-    res.json(rows);
+    // Sửa: Dùng Sequelize findAll với include thay vì MongoDB find().populate()
+    const reports = await Report.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ["username", "email"]
+        }
+      ]
+    });
+    res.json(reports);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching reports", error: err });
+    res.status(500).json({ message: "Lỗi server", error: err });
   }
 };
 
+// =======================
+// 5. GIẢI QUYẾT REPORT
+// =======================
 export const resolveReport = async (req, res) => {
   try {
     const id = req.params.id;
 
-    await db.query("UPDATE reports SET status = 'resolved' WHERE id = ?", [id]);
+    // Sửa: Dùng Sequelize update thay vì MongoDB findByIdAndUpdate
+    await Report.update(
+      { status: "resolved" },
+      { where: { id } }
+    );
 
-    res.json({ message: "Report resolved" });
+    res.json({ message: "Đã xử lý report" });
+
   } catch (err) {
-    res.status(500).json({ message: "Error resolving report", error: err });
+    res.status(500).json({ message: "Lỗi server", error: err });
   }
 };

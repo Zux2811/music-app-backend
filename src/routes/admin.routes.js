@@ -1,17 +1,20 @@
 import express from "express";
 import adminAuth from "../middleware/admin.middleware.js";
+
 import {
+  loginAdmin,
   getAllUsers,
   deleteUser,
   getAllReports,
   resolveReport
 } from "../controllers/admin.controller.js";
-import { adminLogin } from "../controllers/adminAuth.controller.js";
 
 const router = express.Router();
 
-router.post("/login", adminLogin);
+// login admin
+router.post("/login", loginAdmin);
 
+// protected routes
 router.get("/users", adminAuth, getAllUsers);
 router.delete("/users/:id", adminAuth, deleteUser);
 router.get("/reports", adminAuth, getAllReports);

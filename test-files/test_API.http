@@ -56,3 +56,13 @@ Content-Type: audio/mpeg
 --MyBoundary--
 ###
 POST /api/auth/login
+
+
+#####
+POST http://localhost:5000/api/admin/login
+Content-Type: application/json
+
+{
+  "email": "admin@gmail.com",
+  "password": "123456"
+}

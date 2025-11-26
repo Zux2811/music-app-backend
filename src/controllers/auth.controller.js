@@ -1,58 +1,56 @@
-// src/controllers/auth.controller.js
-import db from "../config/db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import User from "../models/user.model.js";
+
+export const register = async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser)
+      return res.status(400).json({ message: "Email already exists" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+      role: "user" // mặc định user
+    });
+
+    res.status(201).json({
+      message: "User registered successfully",
+      user: newUser,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
 
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Kiểm tra input
-    if (!email || !password) {
-      return res.status(400).json({ message: "Missing email or password" });
-    }
+    const user = await User.findOne({ where: { email } });
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
 
-    // Lấy user từ DB
-    const [users] = await db.query(
-      "SELECT id, username, email, password, role FROM users WHERE email = ?",
-      [email]
-    );
-
-    if (users.length === 0) {
-      return res.status(400).json({ message: "Email không tồn tại" });
-    }
-
-    const user = users[0];
-
-    // So sánh password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Sai mật khẩu" });
-    }
+    if (!isMatch)
+      return res.status(401).json({ message: "Invalid password" });
 
-    // Tạo token có ROLE
     const token = jwt.sign(
-      {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role, // ⬅ quan trọng!
-      },
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
     res.json({
-      message: "Đăng nhập thành công",
+      message: "Login successful",
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-      },
+      role: user.role,
     });
-  } catch (err) {
-    res.status(500).json({ message: "Lỗi server", error: err });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
   }
 };
