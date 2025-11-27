@@ -62,18 +62,24 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/comments", commentRoutes);
 
-// connect + sync
+// connect + sync (non-blocking for port binding/health)
 (async () => {
   try {
-    await sequelize.authenticate();
-    console.log("Sequelize connected.");
-    // await sequelize.sync({ alter: true });
-    await sequelize.sync();
-    console.log("DB synced.");
+    if (process.env.SKIP_DB === "true") {
+      console.log("SKIP_DB=true -> Bỏ qua kết nối/đồng bộ DB lúc khởi động");
+    } else {
+      await sequelize.authenticate();
+      console.log("Sequelize connected.");
+      await sequelize.sync();
+      console.log("DB synced.");
+    }
   } catch (err) {
     console.error("DB connection/sync error:", err);
   }
 })();
+
+// Health check
+app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
