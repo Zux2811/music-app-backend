@@ -7,7 +7,7 @@ export default function authMiddleware(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload; // { id, email }
+    req.user = payload; // { id, email, role }
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid token" });

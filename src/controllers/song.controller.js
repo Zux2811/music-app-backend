@@ -206,7 +206,7 @@ export const addSong = async (req, res) => {
       title,
       artist,
       album,
-      url: audioUrl,
+      audioUrl: audioUrl,
       imageUrl: imageUrl || null,
     });
 

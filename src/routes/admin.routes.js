@@ -4,9 +4,7 @@ import adminAuth from "../middleware/admin.middleware.js";
 import {
   loginAdmin,
   getAllUsers,
-  deleteUser,
-  getAllReports,
-  resolveReport
+  deleteUser
 } from "../controllers/admin.controller.js";
 
 const router = express.Router();
@@ -17,7 +15,6 @@ router.post("/login", loginAdmin);
 // protected routes
 router.get("/users", adminAuth, getAllUsers);
 router.delete("/users/:id", adminAuth, deleteUser);
-router.get("/reports", adminAuth, getAllReports);
-router.put("/reports/:id/resolve", adminAuth, resolveReport);
+// Reports endpoints have been migrated to /api/reports (report.controller.js)
 
 export default router;

@@ -6,10 +6,10 @@ import User from "../models/user.model.js";
 // 🆕 Tạo playlist mới
 export const createPlaylist = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, folderId } = req.body;
     const userId = req.user.id;
 
-    const playlist = await Playlist.create({ name, UserId: userId });
+    const playlist = await Playlist.create({ name, UserId: userId, folderId });
     res.status(201).json({ message: "Playlist created", playlist });
   } catch (error) {
     res.status(500).json({ message: "Error creating playlist", error });

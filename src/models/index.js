@@ -58,6 +58,8 @@ import Comment from "./comment.model.js";
 import UserProfile from "./userProfile.model.js";
 import Folder from "./folder.model.js";
 import Report from "./report.model.js";
+import Favorite from "./favorite.model.js";
+import CommentLike from "./commentLike.model.js";
 
 // Associations
 
@@ -69,6 +71,10 @@ Playlist.belongsTo(User);
 
 User.hasMany(Folder, { onDelete: "CASCADE" });
 Folder.belongsTo(User);
+
+// Mối quan hệ Folder và Playlist (quan trọng, đã thiếu)
+Folder.hasMany(Playlist, { foreignKey: "folderId", onDelete: "CASCADE" });
+Playlist.belongsTo(Folder, { foreignKey: "folderId" });
 
 Playlist.belongsToMany(Song, {
   through: PlaylistSong,
@@ -97,6 +103,24 @@ Report.belongsTo(User, { foreignKey: "userId" });
 Comment.hasMany(Report, { foreignKey: "commentId" });
 Report.belongsTo(Comment, { foreignKey: "commentId" });
 
+// FAVORITES RELATIONS
+User.hasMany(Favorite, { foreignKey: "userId", onDelete: "CASCADE" });
+Favorite.belongsTo(User, { foreignKey: "userId" });
+Song.hasMany(Favorite, { foreignKey: "songId", onDelete: "CASCADE" });
+Favorite.belongsTo(Song, { foreignKey: "songId" });
+
+// COMMENT LIKES (through table)
+User.belongsToMany(Comment, {
+  through: CommentLike,
+  foreignKey: "userId",
+  otherKey: "commentId",
+});
+Comment.belongsToMany(User, {
+  through: CommentLike,
+  foreignKey: "commentId",
+  otherKey: "userId",
+});
+
 export {
   User,
   Song,
@@ -106,4 +130,6 @@ export {
   UserProfile,
   Folder,
   Report,
+  Favorite,
+  CommentLike,
 };

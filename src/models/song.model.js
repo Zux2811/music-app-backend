@@ -23,6 +23,11 @@ const Song = sequelize.define(
     album: {
       type: DataTypes.STRING,
       allowNull: true,
+    },
+    duration: {
+      type: DataTypes.INTEGER, // in seconds
+      allowNull: true,
+      defaultValue: 0,
     }
   },
   {

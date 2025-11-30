@@ -1,5 +1,6 @@
 import Comment from "../models/comment.model.js";
 import User from "../models/user.model.js";
+import CommentLike from "../models/commentLike.model.js";
 
 // ===============================================
 // 1. USER THÊM BÌNH LUẬN
@@ -44,15 +45,30 @@ export const getComments = async (req, res) => {
       ? { song_id: songId }
       : { playlist_id: playlistId };
 
-    const comments = await Comment.findAll({
+    const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || "50", 10), 1), 200);
+    const offset = (page - 1) * limit;
+
+    const { rows, count } = await Comment.findAndCountAll({
       where: condition,
       include: [
         { model: User, as: "user", attributes: ["id", "username"] },
       ],
       order: [["createdAt", "DESC"]],
+      limit,
+      offset,
     });
 
-    res.json(comments);
+    const totalPages = Math.ceil(count / limit) || 1;
+    res.json({
+      items: rows,
+      page,
+      limit,
+      total: count,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -65,32 +81,38 @@ export const getComments = async (req, res) => {
 export const likeComment = async (req, res) => {
   try {
     const userId = req.user.id;
-    const commentId = req.params.commentId;
+    const commentId = Number(req.params.commentId);
 
     const comment = await Comment.findByPk(commentId);
     if (!comment) {
       return res.status(404).json({ message: "Không tìm thấy bình luận" });
     }
 
-    // lưu danh sách user đã like trong 1 bảng khác (tối ưu)
-    // hoặc lưu tạm JSON (đơn giản)
-    let likedList = comment.liked_by || "[]";
-    likedList = JSON.parse(likedList);
-
-    if (likedList.includes(userId)) {
+    // Atomically ensure single like per user via findOrCreate
+    const [likeRow, created] = await CommentLike.findOrCreate({
+      where: { userId, commentId },
+      defaults: { userId, commentId },
+    });
+    if (!created) {
       return res.status(400).json({ message: "Bạn đã thích bình luận này rồi" });
     }
 
-    likedList.push(userId);
+    // Compute current total likes from join table
+    const total = await CommentLike.count({ where: { commentId } });
 
-    comment.likes += 1;
-    comment.liked_by = JSON.stringify(likedList);
+    // Optionally maintain denormalized counter
+    if (typeof comment.likes === 'number') {
+      comment.likes = total;
+      await comment.save();
+    }
 
-    await comment.save();
-
-    res.json({ message: "Đã thích bình luận", likes: comment.likes });
+    return res.json({ message: "Đã thích bình luận", likes: total });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error?.name === 'SequelizeUniqueConstraintError') {
+      // Handle rare race condition
+      return res.status(400).json({ message: "Bạn đã thích bình luận này rồi" });
+    }
+    return res.status(500).json({ message: error.message });
   }
 };
 

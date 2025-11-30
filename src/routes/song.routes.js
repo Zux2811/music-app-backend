@@ -51,13 +51,12 @@ const getPublicIdFromUrl = (url) => {
 const destroyIfExists = async (url, resourceType) => {
   const publicId = getPublicIdFromUrl(url);
   if (!publicId) return;
+  const normalizedType = resourceType === "image" ? "image" : "video"; // only allow image or video
   try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+    await cloudinary.uploader.destroy(publicId, { resource_type: normalizedType });
   } catch (e) {
-    // best-effort: try alternate type if audio is stored as raw/video
-    if (resourceType === "video") {
-      try { await cloudinary.uploader.destroy(publicId, { resource_type: "raw" }); } catch (_) {}
-    }
+    // log only; resource may already be gone
+    console.warn(`Cloudinary destroy failed for ${publicId} (${normalizedType}):`, e?.message || e);
   }
 };
 
@@ -70,18 +69,25 @@ router.post(
       const files = req.files || {};
       let audioUrl = null;
       let imageUrl = null;
+      let audioDuration = 0;
 
       if (files.audio?.[0]) {
         const result = await uploadBuffer(files.audio[0].buffer, {
-          resource_type: "auto",
+          resource_type: "video", // explicit for audio files
           folder: "music_app/audio",
         });
         audioUrl = result.secure_url;
+        if (result && typeof result.duration !== "undefined") {
+          const dur = Number(result.duration);
+          if (!Number.isNaN(dur) && dur > 0) {
+            audioDuration = Math.round(dur);
+          }
+        }
       }
 
       if (files.image?.[0]) {
         const result = await uploadBuffer(files.image[0].buffer, {
-          resource_type: "auto",
+          resource_type: "image", // explicit for cover art
           folder: "music_app/images",
         });
         imageUrl = result.secure_url;
@@ -95,6 +101,7 @@ router.post(
         album,
         audioUrl,
         imageUrl,
+        duration: audioDuration,
       });
 
       res.status(201).json({ message: "Uploaded", song });
@@ -127,18 +134,24 @@ router.put(
       // handle audio replacement
       if (files.audio?.[0]) {
         const up = await uploadBuffer(files.audio[0].buffer, {
-          resource_type: "auto",
+          resource_type: "video", // explicit for audio
           folder: "music_app/audio",
         });
         // delete old
         if (song.audioUrl) await destroyIfExists(song.audioUrl, "video");
         updates.audioUrl = up.secure_url;
+        if (up && typeof up.duration !== "undefined") {
+          const dur = Number(up.duration);
+          if (!Number.isNaN(dur) && dur > 0) {
+            updates.duration = Math.round(dur);
+          }
+        }
       }
 
       // handle image replacement
       if (files.image?.[0]) {
         const up = await uploadBuffer(files.image[0].buffer, {
-          resource_type: "auto",
+          resource_type: "image", // explicit for cover art
           folder: "music_app/images",
         });
         if (song.imageUrl) await destroyIfExists(song.imageUrl, "image");
@@ -174,8 +187,30 @@ router.delete("/:id", adminAuth, async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
-  const songs = await Song.findAll({ order: [["id", "DESC"]] });
-  res.json(songs);
+  try {
+    const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || "50", 10), 1), 200);
+    const offset = (page - 1) * limit;
+
+    const { rows, count } = await Song.findAndCountAll({
+      order: [["id", "DESC"]],
+      limit,
+      offset,
+    });
+
+    const totalPages = Math.ceil(count / limit) || 1;
+    res.json({
+      items: rows,
+      page,
+      limit,
+      total: count,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    });
+  } catch (e) {
+    res.status(500).json({ message: "Failed to fetch songs", error: e.message });
+  }
 });
 
 export default router;

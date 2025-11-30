@@ -1,6 +1,6 @@
 import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
-import isAdmin from "../middleware/isAdmin.middleware.js";
+import adminAuth from "../middleware/admin.middleware.js";
 import {
   reportComment,
   getAllReports,
@@ -15,15 +15,15 @@ const router = express.Router();
 router.post("/:commentId", authMiddleware, reportComment);
 
 // Admin xem tất cả report
-router.get("/", authMiddleware, isAdmin, getAllReports);
+router.get("/", adminAuth, getAllReports);
 
 // Admin xem comment bị báo cáo + số report
-router.get("/group", authMiddleware, isAdmin, getReportedComments);
+router.get("/group", adminAuth, getReportedComments);
 
 // Admin xoá 1 report
-router.delete("/:id", authMiddleware, isAdmin, deleteReport);
+router.delete("/:id", adminAuth, deleteReport);
 
 // Admin xoá comment + report liên quan
-router.delete("/comment/:commentId", authMiddleware, isAdmin, deleteCommentByAdmin);
+router.delete("/comment/:commentId", adminAuth, deleteCommentByAdmin);
 
 export default router;
