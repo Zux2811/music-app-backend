@@ -46,6 +46,8 @@ import songRoutes from "./routes/song.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import reportRoutes from "./routes/report.routes.js";
 import commentRoutes from "./routes/comment.routes.js";
+import folderRoutes from "./routes/folder.routes.js";
+import playlistRoutes from "./routes/playlist.routes.js";
 
 dotenv.config();
 
@@ -61,6 +63,8 @@ app.use("/api/songs", songRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/folders", folderRoutes);
+app.use("/api/playlists", playlistRoutes);
 
 // connect + sync (non-blocking for port binding/health)
 (async () => {
