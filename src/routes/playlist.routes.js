@@ -8,7 +8,7 @@ import {
   getSongsInPlaylist,
   removeSongFromPlaylist, // ✅ thêm import hàm xóa bài hát
 } from "../controllers/playlist.controller.js";
-import { verifyToken } from "../middleware/auth.middleware.js";
+import verifyToken from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
