@@ -91,7 +91,7 @@ app.use("/api/favorites", favoriteRoutes);
       console.log("[DB] Authenticating with database...");
       await sequelize.authenticate();
       console.log("[DB] ✓ Sequelize connected successfully");
-      const alter = process.env.SEQUELIZE_ALTER === "true";
+      const alter = process.env.SEQUELIZE_ALTER === "false ";
       console.log("[DB] Syncing database models...");
       await sequelize.sync(alter ? { alter: true } : undefined);
       console.log(`[DB] ✓ DB synced${alter ? " (alter:true)" : ""}.`);
@@ -129,6 +129,8 @@ app.use("/api/favorites", favoriteRoutes);
         await ensureColumn('playlists', 'UserId', 'ADD COLUMN UserId INT NULL');
         // Ensure playlists.folderId exists
         await ensureColumn('playlists', 'folderId', 'ADD COLUMN folderId INT NULL');
+        // Ensure songs.duration exists
+        await ensureColumn('songs', 'duration', 'ADD COLUMN duration INT NOT NULL DEFAULT 0');
 
         // Add foreign keys if missing (names chosen to avoid duplicates)
         if (!(await fkExists('folders', 'UserId'))) {
