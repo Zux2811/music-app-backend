@@ -66,13 +66,14 @@ import CommentLike from "./commentLike.model.js";
 User.hasOne(UserProfile, { foreignKey: "user_id" });
 UserProfile.belongsTo(User, { foreignKey: "user_id" });
 
-User.hasMany(Playlist, { onDelete: "CASCADE" });
-Playlist.belongsTo(User);
+// Explicit foreign keys to avoid duplicate/ambiguous names
+User.hasMany(Playlist, { foreignKey: "UserId", onDelete: "CASCADE" });
+Playlist.belongsTo(User, { foreignKey: "UserId" });
 
-User.hasMany(Folder, { onDelete: "CASCADE" });
-Folder.belongsTo(User);
+User.hasMany(Folder, { foreignKey: "UserId", onDelete: "CASCADE" });
+Folder.belongsTo(User, { foreignKey: "UserId" });
 
-// Mối quan hệ Folder và Playlist (quan trọng, đã thiếu)
+// Folder-Playlist relation
 Folder.hasMany(Playlist, { foreignKey: "folderId", onDelete: "CASCADE" });
 Playlist.belongsTo(Folder, { foreignKey: "folderId" });
 

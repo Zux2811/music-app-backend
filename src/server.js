@@ -95,6 +95,81 @@ app.use("/api/favorites", favoriteRoutes);
       console.log("[DB] Syncing database models...");
       await sequelize.sync(alter ? { alter: true } : undefined);
       console.log(`[DB] ✓ DB synced${alter ? " (alter:true)" : ""}.`);
+
+      // ---- Safety migrations for missing columns/constraints (idempotent) ----
+      try {
+        const ensureColumn = async (table, column, ddl) => {
+          const [rows] = await sequelize.query(
+            `SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t AND COLUMN_NAME = :c`,
+            { replacements: { t: table, c: column } }
+          );
+          const cnt = Array.isArray(rows) ? rows[0]?.cnt : rows?.cnt;
+          if (!Number(cnt)) {
+            console.log(`[DB] Adding missing column ${table}.${column} ...`);
+            await sequelize.query(`ALTER TABLE ${table} ${ddl}`);
+            console.log(`[DB] ✓ Added column ${table}.${column}`);
+          }
+        };
+
+        const fkExists = async (table, column) => {
+          const [rows] = await sequelize.query(
+            `SELECT COUNT(*) AS cnt FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t AND COLUMN_NAME = :c
+               AND REFERENCED_TABLE_NAME IS NOT NULL`,
+            { replacements: { t: table, c: column } }
+          );
+          const cnt = Array.isArray(rows) ? rows[0]?.cnt : rows?.cnt;
+          return Number(cnt) > 0;
+        };
+
+        // Ensure folders.UserId exists
+        await ensureColumn('folders', 'UserId', 'ADD COLUMN UserId INT NULL');
+        // Ensure playlists.UserId exists
+        await ensureColumn('playlists', 'UserId', 'ADD COLUMN UserId INT NULL');
+        // Ensure playlists.folderId exists
+        await ensureColumn('playlists', 'folderId', 'ADD COLUMN folderId INT NULL');
+
+        // Add foreign keys if missing (names chosen to avoid duplicates)
+        if (!(await fkExists('folders', 'UserId'))) {
+          try {
+            console.log('[DB] Adding FK fk_folders_userId ...');
+            await sequelize.query(
+              'ALTER TABLE folders ADD CONSTRAINT fk_folders_userId FOREIGN KEY (UserId) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE'
+            );
+            console.log('[DB] ✓ FK fk_folders_userId added');
+          } catch (e) {
+            console.warn('[DB] FK fk_folders_userId skipped:', e.message);
+          }
+        }
+
+        if (!(await fkExists('playlists', 'UserId'))) {
+          try {
+            console.log('[DB] Adding FK fk_playlists_userId ...');
+            await sequelize.query(
+              'ALTER TABLE playlists ADD CONSTRAINT fk_playlists_userId FOREIGN KEY (UserId) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE'
+            );
+            console.log('[DB] ✓ FK fk_playlists_userId added');
+          } catch (e) {
+            console.warn('[DB] FK fk_playlists_userId skipped:', e.message);
+          }
+        }
+
+        if (!(await fkExists('playlists', 'folderId'))) {
+          try {
+            console.log('[DB] Adding FK fk_playlists_folderId ...');
+            await sequelize.query(
+              'ALTER TABLE playlists ADD CONSTRAINT fk_playlists_folderId FOREIGN KEY (folderId) REFERENCES folders(id) ON DELETE SET NULL ON UPDATE CASCADE'
+            );
+            console.log('[DB] ✓ FK fk_playlists_folderId added');
+          } catch (e) {
+            console.warn('[DB] FK fk_playlists_folderId skipped:', e.message);
+          }
+        }
+      } catch (e) {
+        console.warn('[DB] Safety migrations skipped:', e.message);
+      }
+
       // Legacy migration: populate audioUrl from legacy url column if present
       try {
         console.log("[DB] Checking for legacy url->audioUrl migration...");
