@@ -4,8 +4,8 @@ import sequelize from "../config/db.js";
 const Playlist = sequelize.define("Playlist", {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   name: { type: DataTypes.STRING, allowNull: false },
-  // Associations will create UserId and folderId foreign keys; explicitly include folderId here
-  folderId: { type: DataTypes.INTEGER, allowNull: true },
+  folderId: { type: DataTypes.INTEGER, allowNull: true }, // Foreign key to Folder
+  UserId: { type: DataTypes.INTEGER, allowNull: false }, // ✅ Foreign key to User
 }, {
   tableName: "playlists",
   timestamps: true,
