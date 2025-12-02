@@ -16,8 +16,9 @@ export const loginAdmin = async (req, res) => {
     }
 
     // Kiểm tra role
-    if (admin.role !== "admin") {
-      return res.status(403).json({ message: "Bạn không phải admin" });
+    // Trim and convert to lowercase for robust role checking
+    if (admin.role?.trim().toLowerCase() !== "admin") {
+      return res.status(403).json({ message: "Tài khoản này không có quyền admin" });
     }
 
     // Kiểm tra mật khẩu
