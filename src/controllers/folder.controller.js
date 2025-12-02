@@ -1,13 +1,24 @@
 import Folder from "../models/folder.model.js";
 import Playlist from "../models/playlist.model.js";
+import Song from "../models/song.model.js"; // Import Song model
 
-// Cấu trúc include đệ quy để lấy thư mục con và playlist
+// Cấu trúc include đệ quy để lấy thư mục con, playlist, và các bài hát trong playlist
 const includeNestedFolders = (level = 4) => {
+  const playlistInclude = {
+    model: Playlist,
+    include: [{
+      model: Song, // Include songs in each playlist
+      as: 'songs', // Make sure this alias matches the one in Playlist model
+      through: { attributes: [] }, // Exclude join table attributes
+    }],
+  };
+
   if (level <= 0) {
-    return [{ model: Playlist, as: "Playlists" }]; // Thêm alias cho Playlist
+    return [playlistInclude];
   }
+
   return [
-    { model: Playlist, as: "Playlists" }, // Thêm alias cho Playlist
+    playlistInclude,
     {
       model: Folder,
       as: "SubFolders",
@@ -35,7 +46,7 @@ export const createFolder = async (req, res) => {
   }
 };
 
-// 🟡 Get all folders for a user (nested structure)
+// 🟡 Get all folders for a user (nested structure) + root playlists (folderId=null)
 export const getFolders = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -45,7 +56,17 @@ export const getFolders = async (req, res) => {
       order: [["name", "ASC"]], // Optional: sort folders
     });
 
-    res.status(200).json(folders);
+    // Also return playlists that are not inside any folder (folderId IS NULL)
+    const { default: Playlist } = await import("../models/playlist.model.js");
+    const { default: Song } = await import("../models/song.model.js");
+
+    const rootPlaylists = await Playlist.findAll({
+      where: { UserId: userId, folderId: null },
+      include: [{ model: Song, as: 'songs', through: { attributes: [] } }],
+      order: [["name", "ASC"]],
+    });
+
+    res.status(200).json({ folders, rootPlaylists });
   } catch (error) {
     console.error("Error fetching folders:", error);
     res.status(500).json({ message: "Lỗi khi lấy danh sách folder", error: error.message });

@@ -3,16 +3,25 @@ import Song from "../models/song.model.js";
 import PlaylistSong from "../models/playlistSong.model.js";
 import User from "../models/user.model.js";
 
-// 🆕 Tạo playlist mới
+// 🆕 Tạo playlist mới (folderId optional; allow root playlists)
 export const createPlaylist = async (req, res) => {
   try {
-    const { name, folderId } = req.body;
+    const { name } = req.body;
+    let { folderId } = req.body;
     const userId = req.user.id;
 
-    const playlist = await Playlist.create({ name, UserId: userId, folderId });
+    // Normalize folderId: treat '', 0, '0', undefined as null (root)
+    if (folderId === undefined || folderId === '' || Number(folderId) === 0) {
+      folderId = null;
+    }
+
+    const payload = { name, UserId: userId };
+    if (folderId !== undefined) payload.folderId = folderId; // null will be saved as NULL
+
+    const playlist = await Playlist.create(payload);
     res.status(201).json({ message: "Playlist created", playlist });
   } catch (error) {
-    res.status(500).json({ message: "Error creating playlist", error });
+    res.status(500).json({ message: "Error creating playlist", error: error.message });
   }
 };
 

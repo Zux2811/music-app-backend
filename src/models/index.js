@@ -95,15 +95,18 @@ Folder.hasMany(Folder, { as: 'SubFolders', foreignKey: 'parentId', onDelete: 'CA
 // A Folder belongs to one Parent Folder
 Folder.belongsTo(Folder, { as: 'Parent', foreignKey: 'parentId' });
 
+// Use explicit aliases so included data keys are lowercased as expected by mobile app
 Playlist.belongsToMany(Song, {
   through: PlaylistSong,
   foreignKey: "playlistId",
   otherKey: "songId",
+  as: 'songs',
 });
 Song.belongsToMany(Playlist, {
   through: PlaylistSong,
   foreignKey: "songId",
   otherKey: "playlistId",
+  as: 'playlists',
 });
 
 Song.hasMany(Comment, { foreignKey: "song_id" });
