@@ -94,8 +94,7 @@ app.use("/api/favorites", favoriteRoutes);
       // Use { alter: true } in development to apply non-destructive changes.
       // Use { force: false } or remove sync in production for safety.
       console.log("[DB] Syncing database models with { alter: true }...");
-      await sequelize.sync();
-      // await sequelize.sync({ force: true });
+      await sequelize.sync({ alter: true });
       console.log(`[DB] ✓ DB synced with { alter: true }`);
 
       // ---- Safety migrations for missing columns/constraints (idempotent) ----
