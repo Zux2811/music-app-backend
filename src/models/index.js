@@ -88,9 +88,9 @@ Favorite.belongsTo(User, { foreignKey: "userId", constraints: false }); // Optim
 Folder.hasMany(Playlist, { foreignKey: "folderId", onDelete: "SET NULL" }); // Use SET NULL to avoid cycles
 Playlist.belongsTo(Folder, { foreignKey: "folderId" });
 
-// Self-referencing for nested folders (Temporarily disabled to fix sync issue)
-// Folder.hasMany(Folder, { as: 'SubFolders', foreignKey: 'parentId', onDelete: 'CASCADE' });
-// Folder.belongsTo(Folder, { as: 'Parent', foreignKey: 'parentId' });
+// Self-referencing for nested folders
+Folder.hasMany(Folder, { as: 'SubFolders', foreignKey: 'parentId', sourceKey: 'id', onDelete: 'CASCADE' });
+Folder.belongsTo(Folder, { as: 'Parent', foreignKey: 'parentId', targetKey: 'id' });
 
 Playlist.belongsToMany(Song, {
   through: PlaylistSong,
