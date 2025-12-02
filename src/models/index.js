@@ -85,12 +85,15 @@ Favorite.belongsTo(User, { foreignKey: "userId", constraints: false }); // Optim
 // --- Other Relationships ---
 
 // Folder-Playlist relation
-Folder.hasMany(Playlist, { foreignKey: "folderId", onDelete: "SET NULL" }); // Use SET NULL to avoid cycles
-Playlist.belongsTo(Folder, { foreignKey: "folderId" });
+Folder.hasMany(Playlist, { foreignKey: 'folderId', onDelete: 'SET NULL' });
+Playlist.belongsTo(Folder, { foreignKey: 'folderId' });
 
 // Self-referencing for nested folders
-Folder.hasMany(Folder, { as: 'SubFolders', foreignKey: 'parentId', sourceKey: 'id', onDelete: 'CASCADE' });
-Folder.belongsTo(Folder, { as: 'Parent', foreignKey: 'parentId', targetKey: 'id' });
+// A Folder can have many SubFolders (children)
+Folder.hasMany(Folder, { as: 'SubFolders', foreignKey: 'parentId', onDelete: 'CASCADE' });
+
+// A Folder belongs to one Parent Folder
+Folder.belongsTo(Folder, { as: 'Parent', foreignKey: 'parentId' });
 
 Playlist.belongsToMany(Song, {
   through: PlaylistSong,

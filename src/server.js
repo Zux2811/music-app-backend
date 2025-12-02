@@ -91,8 +91,9 @@ app.use("/api/favorites", favoriteRoutes);
       console.log("[DB] Authenticating with database...");
       await sequelize.authenticate();
       console.log("[DB] ✓ Sequelize connected successfully");
+      // Use { alter: true } in development to apply non-destructive changes.
+      // Use { force: false } or remove sync in production for safety.
       console.log("[DB] Syncing database models with { alter: true }...");
-      // For development, always use alter: true to apply non-destructive changes.
       await sequelize.sync({ force: true });
       console.log(`[DB] ✓ DB synced with { alter: true }`);
 

@@ -1,17 +1,17 @@
 import Folder from "../models/folder.model.js";
 import Playlist from "../models/playlist.model.js";
 
-// Helper function for recursive folder inclusion
+// Cấu trúc include đệ quy để lấy thư mục con và playlist
 const includeNestedFolders = (level = 4) => {
   if (level <= 0) {
-    return [{ model: Playlist }];
+    return [{ model: Playlist, as: "Playlists" }]; // Thêm alias cho Playlist
   }
   return [
-    { model: Playlist },
+    { model: Playlist, as: "Playlists" }, // Thêm alias cho Playlist
     {
       model: Folder,
       as: "SubFolders",
-      include: includeNestedFolders(level - 1),
+      include: includeNestedFolders(level - 1), // Đệ quy
     },
   ];
 };
