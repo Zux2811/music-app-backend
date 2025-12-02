@@ -31,10 +31,19 @@ export const register = async (req, res) => {
       role: "user" // mặc định user
     });
 
-    console.log("[REGISTER] User created successfully:", { id: newUser.id, email: newUser.email });
+    console.log("[REGISTER] User created successfully, creating JWT:", { id: newUser.id, email: newUser.email });
+    const token = createJwt(newUser);
+
     res.status(201).json({
+      success: true,
       message: "User registered successfully",
-      user: newUser,
+      token: token,
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+      },
     });
   } catch (error) {
     console.error("[REGISTER] Error:", error.message, error.stack);

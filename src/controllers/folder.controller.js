@@ -1,13 +1,33 @@
 import Folder from "../models/folder.model.js";
 import Playlist from "../models/playlist.model.js";
 
-// 🟢 Tạo folder mới
+// Helper function for recursive folder inclusion
+const includeNestedFolders = (level = 4) => {
+  if (level <= 0) {
+    return [{ model: Playlist }];
+  }
+  return [
+    { model: Playlist },
+    {
+      model: Folder,
+      as: "SubFolders",
+      include: includeNestedFolders(level - 1),
+    },
+  ];
+};
+
+// 🟢 Create a new folder (supports nesting)
 export const createFolder = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, parentId } = req.body;
     const userId = req.user.id;
 
-    const folder = await Folder.create({ name, UserId: userId });
+    const folderData = { name, UserId: userId };
+    if (parentId) {
+      folderData.parentId = parentId;
+    }
+
+    const folder = await Folder.create(folderData);
     res.status(201).json(folder);
   } catch (error) {
     console.error("Error creating folder:", error);
@@ -15,13 +35,14 @@ export const createFolder = async (req, res) => {
   }
 };
 
-// 🟡 Lấy tất cả folder của user (kèm danh sách playlist)
+// 🟡 Get all folders for a user (nested structure)
 export const getFolders = async (req, res) => {
   try {
     const userId = req.user.id;
     const folders = await Folder.findAll({
-      where: { UserId: userId },
-      include: [{ model: Playlist }],
+      where: { UserId: userId, parentId: null }, // Fetch only top-level folders
+      include: includeNestedFolders(),
+      order: [["name", "ASC"]], // Optional: sort folders
     });
 
     res.status(200).json(folders);
@@ -31,18 +52,27 @@ export const getFolders = async (req, res) => {
   }
 };
 
-// 🟠 Cập nhật tên folder
+// 🟠 Update a folder (rename or move)
 export const updateFolder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, parentId } = req.body;
 
-    const folder = await Folder.findByPk(id);
+    const folder = await Folder.findOne({ where: { id, UserId: req.user.id } });
     if (!folder) {
       return res.status(404).json({ message: "Không tìm thấy folder" });
     }
 
-    folder.name = name || folder.name;
+    if (name) {
+      folder.name = name;
+    }
+
+    // Handle moving folder
+    if (parentId !== undefined) {
+      // Allow moving to root by setting parentId to null
+      folder.parentId = parentId === "" || parentId === 0 ? null : parentId;
+    }
+
     await folder.save();
     res.status(200).json(folder);
   } catch (error) {
@@ -51,12 +81,12 @@ export const updateFolder = async (req, res) => {
   }
 };
 
-// 🔴 Xóa folder
+// 🔴 Delete a folder (cascade will handle sub-folders and playlists)
 export const deleteFolder = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const folder = await Folder.findByPk(id);
+    const folder = await Folder.findOne({ where: { id, UserId: req.user.id } });
     if (!folder) {
       return res.status(404).json({ message: "Không tìm thấy folder" });
     }

@@ -66,16 +66,31 @@ import CommentLike from "./commentLike.model.js";
 User.hasOne(UserProfile, { foreignKey: "user_id" });
 UserProfile.belongsTo(User, { foreignKey: "user_id" });
 
-// Explicit foreign keys to avoid duplicate/ambiguous names
+// Relationships to User - turn off some constraints to avoid "max 64 keys" error
 User.hasMany(Playlist, { foreignKey: "UserId", onDelete: "CASCADE" });
-Playlist.belongsTo(User, { foreignKey: "UserId" });
+Playlist.belongsTo(User, { foreignKey: "UserId", constraints: false }); // Optimization
 
 User.hasMany(Folder, { foreignKey: "UserId", onDelete: "CASCADE" });
-Folder.belongsTo(User, { foreignKey: "UserId" });
+Folder.belongsTo(User, { foreignKey: "UserId", constraints: false }); // Optimization
+
+User.hasMany(Comment, { foreignKey: "user_id" });
+Comment.belongsTo(User, { foreignKey: "user_id", constraints: false }); // Optimization
+
+User.hasMany(Report, { foreignKey: "userId" });
+Report.belongsTo(User, { foreignKey: "userId", constraints: false }); // Optimization
+
+User.hasMany(Favorite, { foreignKey: "userId", onDelete: "CASCADE" });
+Favorite.belongsTo(User, { foreignKey: "userId", constraints: false }); // Optimization
+
+// --- Other Relationships ---
 
 // Folder-Playlist relation
-Folder.hasMany(Playlist, { foreignKey: "folderId", onDelete: "CASCADE" });
+Folder.hasMany(Playlist, { foreignKey: "folderId", onDelete: "SET NULL" }); // Use SET NULL to avoid cycles
 Playlist.belongsTo(Folder, { foreignKey: "folderId" });
+
+// Self-referencing for nested folders (Temporarily disabled to fix sync issue)
+// Folder.hasMany(Folder, { as: 'SubFolders', foreignKey: 'parentId', onDelete: 'CASCADE' });
+// Folder.belongsTo(Folder, { as: 'Parent', foreignKey: 'parentId' });
 
 Playlist.belongsToMany(Song, {
   through: PlaylistSong,
@@ -88,25 +103,15 @@ Song.belongsToMany(Playlist, {
   otherKey: "playlistId",
 });
 
-User.hasMany(Comment, { foreignKey: "user_id" });
-Comment.belongsTo(User, { foreignKey: "user_id" });
-
 Song.hasMany(Comment, { foreignKey: "song_id" });
 Comment.belongsTo(Song, { foreignKey: "song_id" });
 
 Playlist.hasMany(Comment, { foreignKey: "playlist_id" });
 Comment.belongsTo(Playlist, { foreignKey: "playlist_id" });
 
-// REPORT RELATIONS
-User.hasMany(Report, { foreignKey: "userId" });
-Report.belongsTo(User, { foreignKey: "userId" });
-
 Comment.hasMany(Report, { foreignKey: "commentId" });
 Report.belongsTo(Comment, { foreignKey: "commentId" });
 
-// FAVORITES RELATIONS
-User.hasMany(Favorite, { foreignKey: "userId", onDelete: "CASCADE" });
-Favorite.belongsTo(User, { foreignKey: "userId" });
 Song.hasMany(Favorite, { foreignKey: "songId", onDelete: "CASCADE" });
 Favorite.belongsTo(Song, { foreignKey: "songId" });
 
