@@ -21,9 +21,16 @@ export const loginAdmin = async (req, res) => {
       return res.status(403).json({ message: "Tài khoản này không có quyền admin" });
     }
 
+    // DEBUG: Log user object found in DB
+    console.log("[LOGIN_ADMIN_DEBUG] User found in DB:", JSON.stringify(admin, null, 2));
+
     // Kiểm tra mật khẩu
+    console.log("[LOGIN_ADMIN_DEBUG] Comparing passwords...");
     const isMatch = await bcrypt.compare(password, admin.password);
+    console.log("[LOGIN_ADMIN_DEBUG] Password match result:", isMatch);
+
     if (!isMatch) {
+      console.warn("[LOGIN_ADMIN_DEBUG] Password comparison failed.");
       return res.status(400).json({ message: "Sai tài khoản hoặc mật khẩu" });
     }
 
