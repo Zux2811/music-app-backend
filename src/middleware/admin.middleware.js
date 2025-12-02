@@ -1,21 +1,20 @@
-import jwt from "jsonwebtoken";
-
+// Admin-only guard. Assumes authMiddleware has already verified the JWT
+// and populated req.user. This prevents duplicated token parsing and keeps
+// verification logic in a single place.
 export default function adminAuth(req, res, next) {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
-    if (!token)
-      return res.status(401).json({ message: "Missing token" });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    if (decoded.role !== "admin") {
+    const role = (user.role ?? "").toString().trim().toLowerCase();
+    if (role !== "admin") {
       return res.status(403).json({ message: "You are not admin" });
     }
 
-    req.user = decoded;
-    next();
+    return next();
   } catch (err) {
-    return res.status(401).json({ message: "Unauthorized", error: err });
+    return res.status(401).json({ message: "Unauthorized" });
   }
 }

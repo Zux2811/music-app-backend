@@ -40,6 +40,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import sequelize from "./config/db.js";
 import "./models/index.js";
+import logger from "./utils/logger.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import songRoutes from "./routes/song.routes.js";
@@ -52,8 +53,15 @@ import favoriteRoutes from "./routes/favorite.routes.js";
 
 dotenv.config();
 
-console.log("[SERVER] Starting application...");
-console.log("[SERVER] Environment:", {
+// Validate JWT secret early to avoid running with weak/undefined signing key
+const jwtSecret = (process.env.JWT_SECRET || "").trim();
+if (!jwtSecret || jwtSecret.length < 16) {
+  logger.error("[SECURITY] Invalid or missing JWT_SECRET. Set a strong secret (>=16 chars) in environment variables.");
+  process.exit(1);
+}
+
+logger.info("Starting application...");
+logger.debug("Initial environment:", {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT || 5000,
   SKIP_DB: process.env.SKIP_DB,
@@ -65,10 +73,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-console.log("[SERVER] Middleware configured");
+logger.info("Middleware configured");
 
 app.get("/", (req, res) => {
-  console.log("[SERVER] Health check endpoint called");
+  logger.debug("Root health check endpoint called");
   return res.json({ status: "ok", time: new Date() });
 });
 
@@ -84,21 +92,21 @@ app.use("/api/favorites", favoriteRoutes);
 // connect + sync (non-blocking for port binding/health)
 (async () => {
   try {
-    console.log("[DB] Starting database initialization...");
+    logger.info("Starting database initialization...");
     if (process.env.SKIP_DB === "true") {
-      console.log("[DB] SKIP_DB=true -> Bỏ qua kết nối/đồng bộ DB lúc khởi động");
+      logger.warn("SKIP_DB=true -> Skipping database connection/sync on startup");
     } else {
-      console.log("[DB] Authenticating with database...");
+      logger.info("Authenticating with database...");
       await sequelize.authenticate();
-      console.log("[DB] ✓ Sequelize connected successfully");
+      logger.info("✓ Sequelize connected successfully");
       // Use { alter: true } in development to apply non-destructive changes.
       // Use { force: false } or remove sync in production for safety.
-      console.log("[DB] Syncing database models with { alter: true }...");
+      logger.info("Syncing database models with { alter: true }...");
       await sequelize.sync({ alter: true });
-      console.log(`[DB] ✓ DB synced with { alter: true }`);
+      logger.info(`✓ DB synced with { alter: true }`);
 
       // ---- Safety migrations for missing columns/constraints (idempotent) ----
-      console.log("[DB] Running safety migrations...");
+      logger.info("Running safety migrations...");
       try {
         const ensureColumn = async (table, column, ddl) => {
           try {
@@ -109,14 +117,14 @@ app.use("/api/favorites", favoriteRoutes);
             );
             const cnt = rows?.cnt ?? 0;
             if (!Number(cnt)) {
-              console.log(`[DB] Adding missing column ${table}.${column} ...`);
+              logger.info(`Adding missing column ${table}.${column} ...`);
               await sequelize.query(`ALTER TABLE ${table} ${ddl}`);
-              console.log(`[DB] ✓ Added column ${table}.${column}`);
+              logger.info(`✓ Added column ${table}.${column}`);
             }
           } catch (e) {
             // Gracefully handle case where table doesn't exist yet, as sync will create it.
             if (e.message.includes("doesn't exist")) {
-              console.warn(`[DB] Table ${table} not found for safety check, assuming sync will create it.`);
+              logger.warn(`Table ${table} not found for safety check, assuming sync will create it.`);
             } else {
               throw e;
             }
@@ -129,35 +137,35 @@ app.use("/api/favorites", favoriteRoutes);
         // You can add other ensureColumn calls here if needed
 
       } catch (e) {
-        console.error('[DB] ✗ Error during safety migrations:', e.message);
+        logger.error('Error during safety migrations:', e.message);
       }
 
 
       // Legacy migration: populate audioUrl from legacy url column if present
       try {
-        console.log("[DB] Checking for legacy url->audioUrl migration...");
+        logger.info("Checking for legacy url->audioUrl migration...");
         await sequelize.query(
           "UPDATE songs SET audioUrl = url WHERE (audioUrl IS NULL OR audioUrl = '') AND url IS NOT NULL"
         );
-        console.log("[DB] ✓ Migrated legacy url -> audioUrl where needed");
+        logger.info("✓ Migrated legacy url -> audioUrl where needed");
       } catch (e) {
-        console.warn("[DB] Legacy url->audioUrl migration skipped:", e.message);
+        logger.warn("Legacy url->audioUrl migration skipped:", e.message);
       }
 
       // Optional: drop legacy 'url' column if explicitly enabled
       if (process.env.DROP_LEGACY_URL === "true") {
         try {
-          console.log("[DB] Dropping legacy 'url' column...");
+          logger.info("Dropping legacy 'url' column...");
           await sequelize.query("ALTER TABLE songs DROP COLUMN url");
-          console.log("[DB] ✓ Dropped legacy 'url' column from songs");
+          logger.info("✓ Dropped legacy 'url' column from songs");
         } catch (e) {
-          console.warn("[DB] Drop legacy 'url' column skipped:", e.message);
+          logger.warn("Drop legacy 'url' column skipped:", e.message);
         }
       }
 
       // Migrate comment likes from legacy JSON column to join table (if legacy existed)
       try {
-        console.log("[DB] Recomputing comment likes from join table...");
+        logger.info("Recomputing comment likes from join table...");
         // Recompute denormalized likes counter from join table for all comments
         await sequelize.query(
           `UPDATE comments c
@@ -168,46 +176,44 @@ app.use("/api/favorites", favoriteRoutes);
            ) cl ON cl.commentId = c.id
            SET c.likes = COALESCE(cl.cnt, 0)`
         );
-        console.log("[DB] ✓ Recomputed comments.likes from comment_likes join table");
+        logger.info("✓ Recomputed comments.likes from comment_likes join table");
       } catch (e) {
-        console.warn("[DB] Recompute comments.likes skipped:", e.message);
+        logger.warn("Recompute comments.likes skipped:", e.message);
       }
 
       // Optionally drop legacy liked_by column if present and enabled
       if (process.env.DROP_LEGACY_LIKED_BY === "true") {
         try {
-          console.log("[DB] Dropping legacy 'liked_by' column...");
+          logger.info("Dropping legacy 'liked_by' column...");
           await sequelize.query("ALTER TABLE comments DROP COLUMN liked_by");
-          console.log("[DB] ✓ Dropped legacy 'liked_by' column from comments");
+          logger.info("✓ Dropped legacy 'liked_by' column from comments");
         } catch (e) {
-          console.warn("[DB] Drop legacy 'liked_by' column skipped:", e.message);
+          logger.warn("Drop legacy 'liked_by' column skipped:", e.message);
         }
       }
 
-      console.log("[DB] ✓ Database initialization completed successfully");
+      logger.info("✓ Database initialization completed successfully");
     }
   } catch (err) {
-    console.error("[DB] ✗ DB connection/sync error:", err.message, err.stack);
+    logger.error("DB connection/sync error:", err);
   }
 })();
 
 // Health check
 app.get("/health", (req, res) => {
-  console.log("[SERVER] Health check called");
+  logger.debug("Health check called");
   return res.json({ status: "ok" });
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("[SERVER] ✓ Server listening on port", PORT);
-  console.log("[SERVER] ✓ Application started successfully");
-  console.log("[SERVER] Available routes:");
-  console.log("  - GET  /                 (health check)");
-  console.log("  - GET  /health           (health check)");
-  console.log("  - POST /api/auth/register");
-  console.log("  - POST /api/auth/login");
-  console.log("  - POST /api/auth/google-signin");
-  console.log("  - GET  /api/songs");
-  console.log("  - POST /api/songs");
-  console.log("  - And more...");
+  logger.info(`✓ Server listening on port ${PORT}`);
+  logger.info("✓ Application started successfully");
+  logger.debug("Available routes:", {
+    "/": "health check",
+    "/health": "health check",
+    "/api/auth": "register, login, google-signin",
+    "/api/songs": "GET, POST",
+    "...": "And more..."
+  });
 });

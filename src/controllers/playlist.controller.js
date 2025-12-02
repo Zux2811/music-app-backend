@@ -1,7 +1,6 @@
 import Playlist from "../models/playlist.model.js";
 import Song from "../models/song.model.js";
 import PlaylistSong from "../models/playlistSong.model.js";
-import User from "../models/user.model.js";
 
 // 🆕 Tạo playlist mới (folderId optional; allow root playlists)
 export const createPlaylist = async (req, res) => {
@@ -25,17 +24,31 @@ export const createPlaylist = async (req, res) => {
   }
 };
 
-// 🔍 Lấy playlist của user
+// 🔍 Lấy playlist của user (luôn dùng id từ JWT để tránh truy cập chéo người dùng)
 export const getUserPlaylists = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.id; // ignore any params
     const playlists = await Playlist.findAll({
       where: { UserId: userId },
-      include: [{ model: Song }],
+      include: [{ model: Song, as: 'songs' }],
     });
     res.json(playlists);
   } catch (error) {
     res.status(500).json({ message: "Error fetching playlists", error });
+  }
+};
+
+// 🔍 Admin xem playlist của 1 user bất kỳ
+export const adminGetUserPlaylists = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const playlists = await Playlist.findAll({
+      where: { UserId: userId },
+      include: [{ model: Song, as: 'songs' }],
+    });
+    res.json(playlists);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching playlists (admin)", error });
   }
 };
 

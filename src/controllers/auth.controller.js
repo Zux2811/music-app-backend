@@ -2,36 +2,37 @@ import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
 import { OAuth2Client } from "google-auth-library";
 import { createJwt } from "../utils/jwt.js";
+import logger from "../utils/logger.js";
 
 export const register = async (req, res) => {
   try {
-    console.log("[REGISTER] Received request:", { username: req.body.username, email: req.body.email });
+    logger.debug("Received registration request", { username: req.body.username, email: req.body.email });
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-      console.warn("[REGISTER] Missing required fields");
+      logger.warn("Registration failed: Missing required fields");
       return res.status(400).json({ message: "Missing required fields: username, email, password" });
     }
 
-    console.log("[REGISTER] Checking if email already exists:", email);
+    logger.debug("Checking for existing email", { email });
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      console.warn("[REGISTER] Email already exists:", email);
+      logger.warn("Registration failed: Email already exists", { email });
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    console.log("[REGISTER] Hashing password for:", email);
+    logger.debug("Hashing password", { email });
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    console.log("[REGISTER] Creating new user:", { username, email });
+    logger.debug("Creating new user", { username, email });
     const newUser = await User.create({
       username,
       email,
       password: hashedPassword,
-      role: "user" // mặc định user
+      role: "user", // default role
     });
 
-    console.log("[REGISTER] User created successfully, creating JWT:", { id: newUser.id, email: newUser.email });
+    logger.info("User registered successfully", { id: newUser.id, email: newUser.email });
     const token = createJwt(newUser);
 
     res.status(201).json({
@@ -46,66 +47,72 @@ export const register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("[REGISTER] Error:", error.message, error.stack);
+    logger.error("Registration error", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
 export const login = async (req, res) => {
   try {
-    console.log("[LOGIN] Received login request for email:", req.body.email);
+    logger.info("Login attempt", { email: req.body.email });
     const { email, password } = req.body;
 
     if (!email || !password) {
-      console.warn("[LOGIN] Missing email or password");
+      logger.warn("Login failed: Missing email or password");
       return res.status(400).json({ message: "Email and password are required" });
     }
 
-    console.log("[LOGIN] Finding user with email:", email);
+    logger.debug("Finding user", { email });
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      console.warn("[LOGIN] User not found:", email);
+      logger.warn("Login failed: User not found", { email });
       return res.status(404).json({ message: "User not found" });
     }
 
-    console.log("[LOGIN] Comparing password for user:", email);
+    // For social-login accounts (no local password), block local login
+    if (!user.password) {
+      logger.warn("Login failed: Local login attempted for social account", { email });
+      return res.status(400).json({ message: "This account uses social login. Please sign in with Google." });
+    }
+
+    logger.debug("Comparing password", { email });
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.warn("[LOGIN] Invalid password for user:", email);
+      logger.warn("Login failed: Invalid password", { email });
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    console.log("[LOGIN] Creating JWT token for user:", { id: user.id, email: user.email, role: user.role });
+    logger.debug("Creating JWT", { id: user.id, email: user.email, role: user.role });
     const token = createJwt(user);
 
-    console.log("[LOGIN] Login successful for user:", email);
+    logger.info("Login successful", { email });
     res.json({
       message: "Login successful",
       token,
       role: user.role,
     });
   } catch (error) {
-    console.error("[LOGIN] Error:", error.message, error.stack);
+    logger.error("Login error", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
 export const googleSignIn = async (req, res) => {
   try {
-    console.log("[GOOGLE_SIGNIN] Received Google sign-in request");
+    logger.info("Received Google sign-in request");
     const { idToken } = req.body;
 
     if (!idToken) {
-      console.warn("[GOOGLE_SIGNIN] Missing idToken");
+      logger.warn("Google sign-in failed: Missing idToken");
       return res.status(400).json({ message: "Missing idToken" });
     }
 
     if (!process.env.GOOGLE_CLIENT_ID) {
-      console.error("[GOOGLE_SIGNIN] GOOGLE_CLIENT_ID not configured");
+      logger.error("Google sign-in failed: GOOGLE_CLIENT_ID not configured");
       return res.status(500).json({ message: "Server missing GOOGLE_CLIENT_ID" });
     }
 
-    console.log("[GOOGLE_SIGNIN] Verifying Google ID token");
+    logger.debug("Verifying Google ID token");
     const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
     // Verify Google ID token
@@ -119,40 +126,40 @@ export const googleSignIn = async (req, res) => {
     const name = payload?.name || email?.split("@")[0];
 
     if (!email) {
-      console.warn("[GOOGLE_SIGNIN] Cannot extract email from Google token");
+      logger.warn("Google sign-in failed: Cannot extract email from Google token");
       return res.status(400).json({ message: "Cannot extract email from Google token" });
     }
 
-    console.log("[GOOGLE_SIGNIN] Google token verified for email:", email);
+    logger.info("Google token verified", { email });
 
     // Find or create user
-    console.log("[GOOGLE_SIGNIN] Looking for existing user:", email);
+    logger.debug("Looking for existing user", { email });
     let user = await User.findOne({ where: { email } });
     if (!user) {
-      console.log("[GOOGLE_SIGNIN] Creating new user from Google:", { name, email });
+      logger.debug("Creating new user from Google", { name, email });
       user = await User.create({
         username: name,
         email,
-        password: "", // no local password for social accounts
+        password: null, // no local password for social accounts
         role: "user",
       });
-      console.log("[GOOGLE_SIGNIN] New user created:", { id: user.id, email: user.email });
+      logger.info("New user created from Google sign-in", { id: user.id, email: user.email });
     } else {
-      console.log("[GOOGLE_SIGNIN] Existing user found:", { id: user.id, email: user.email });
+      logger.debug("Existing user found", { id: user.id, email: user.email });
     }
 
     // Issue our JWT
-    console.log("[GOOGLE_SIGNIN] Creating JWT token for user:", { id: user.id, email: user.email, role: user.role });
+    logger.debug("Creating JWT for Google user", { id: user.id, email: user.email, role: user.role });
     const token = createJwt(user);
 
-    console.log("[GOOGLE_SIGNIN] Google sign-in successful for:", email);
+    logger.info("Google sign-in successful", { email });
     res.json({
       message: "Google login successful",
       token,
       role: user.role,
     });
   } catch (error) {
-    console.error("[GOOGLE_SIGNIN] Error:", error.message, error.stack);
+    logger.error("Google sign-in error", error);
     res.status(500).json({ message: "Google login failed", error: error.message });
   }
 };

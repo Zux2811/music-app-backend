@@ -11,9 +11,11 @@ const User = sequelize.define("User", {
     allowNull: false,
     unique: true
   },
+  // Optional for social/external-provider accounts (e.g., Google)
   password: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true,
+    comment: 'Nullable for social-login users; required only for local accounts'
   },
   role: {
     type: DataTypes.STRING,

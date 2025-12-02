@@ -139,6 +139,7 @@ import User from "../models/user.model.js";
 import Playlist from "../models/playlist.model.js";
 import cloudinary from "../config/cloudinary.js";
 import { Readable } from "stream";
+import logger from "../utils/logger.js";
 
 // Convert buffer → stream (Cloudinary yêu cầu)
 function bufferToStream(buffer) {
@@ -153,12 +154,12 @@ function bufferToStream(buffer) {
 // ===============================
 export const getAllSongs = async (req, res) => {
   try {
-    console.log("[GET_ALL_SONGS] Fetching all songs");
+    logger.info("Fetching all songs");
     const songs = await Song.findAll();
-    console.log("[GET_ALL_SONGS] Found", songs.length, "songs");
+    logger.debug("Found songs", { count: songs.length });
     res.json(songs);
   } catch (error) {
-    console.error("[GET_ALL_SONGS] Error:", error.message, error.stack);
+    logger.error("Error fetching songs", error);
     res.status(500).json({ message: "Error fetching songs", error: error.message });
   }
 };
@@ -168,29 +169,28 @@ export const getAllSongs = async (req, res) => {
 // ===============================
 export const addSong = async (req, res) => {
   try {
-    console.log("[ADD_SONG] Received song upload request");
+    logger.info("Received song upload request");
     const { title, artist, album } = req.body;
-    console.log("[ADD_SONG] Song details:", { title, artist, album });
+    logger.debug("Song details", { title, artist, album });
 
     if (!req.files || !req.files.audio) {
-      console.warn("[ADD_SONG] Audio file is required but not provided");
+      logger.warn("Song upload failed: Audio file is required");
       return res.status(400).json({ message: "Audio file is required" });
     }
 
-    console.log("[ADD_SONG] Files received:", {
+    logger.debug("Files received", {
       hasAudio: !!req.files.audio,
       hasImage: !!req.files.image,
       audioSize: req.files.audio[0]?.size,
-      imageSize: req.files.image?.[0]?.size
+      imageSize: req.files.image?.[0]?.size,
     });
 
     const audioBuffer = req.files.audio[0].buffer;
     const imageBuffer = req.files.image ? req.files.image[0].buffer : null;
 
-    // 🔼 Upload ảnh nếu có
     let imageUrl = null;
     if (imageBuffer) {
-      console.log("[ADD_SONG] Uploading image to Cloudinary...");
+      logger.debug("Uploading image to Cloudinary...");
       imageUrl = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           {
@@ -199,41 +199,37 @@ export const addSong = async (req, res) => {
           },
           (err, result) => {
             if (err) {
-              console.error("[ADD_SONG] Image upload failed:", err.message);
-              reject(err);
-            } else {
-              console.log("[ADD_SONG] Image uploaded successfully:", result.secure_url);
-              resolve(result.secure_url);
+              logger.error("Image upload failed", err);
+              return reject(err);
             }
+            logger.debug("Image uploaded successfully", { url: result.secure_url });
+            resolve(result.secure_url);
           }
         );
         bufferToStream(imageBuffer).pipe(stream);
       });
     }
 
-    // 🔼 Upload audio
-    console.log("[ADD_SONG] Uploading audio to Cloudinary...");
+    logger.debug("Uploading audio to Cloudinary...");
     const audioUrl = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: "music-player-audio",
-          resource_type: "video", // bắt buộc cho mp3/wav/m4a
+          resource_type: "video", // Required for mp3/wav/m4a
         },
         (err, result) => {
           if (err) {
-            console.error("[ADD_SONG] Audio upload failed:", err.message);
-            reject(err);
-          } else {
-            console.log("[ADD_SONG] Audio uploaded successfully:", result.secure_url);
-            resolve(result.secure_url);
+            logger.error("Audio upload failed", err);
+            return reject(err);
           }
+          logger.debug("Audio uploaded successfully", { url: result.secure_url });
+          resolve(result.secure_url);
         }
       );
       bufferToStream(audioBuffer).pipe(stream);
     });
 
-    // 💾 Lưu DB Sequelize
-    console.log("[ADD_SONG] Saving song to database...");
+    logger.debug("Saving song to database...");
     const newSong = await Song.create({
       title,
       artist,
@@ -242,13 +238,13 @@ export const addSong = async (req, res) => {
       imageUrl: imageUrl || null,
     });
 
-    console.log("[ADD_SONG] Song saved successfully:", { id: newSong.id, title: newSong.title });
+    logger.info("Song created successfully", { id: newSong.id, title: newSong.title });
     res.status(201).json({
       message: "Song uploaded successfully",
       song: newSong,
     });
   } catch (error) {
-    console.error("[ADD_SONG] Error:", error.message, error.stack);
+    logger.error("Error adding song", error);
     res.status(500).json({
       message: "Error adding song",
       error: error.message,
@@ -261,25 +257,25 @@ export const addSong = async (req, res) => {
 // ===============================
 export const updateSong = async (req, res) => {
   try {
-    console.log("[UPDATE_SONG] Received update request for song ID:", req.params.id);
     const { id } = req.params;
+    logger.info("Received update request for song", { id });
     const { title, artist, album, audioUrl, imageUrl } = req.body;
-    console.log("[UPDATE_SONG] Update data:", { title, artist, album });
+    logger.debug("Update data", { id, title, artist, album });
 
     const song = await Song.findByPk(id);
     if (!song) {
-      console.warn("[UPDATE_SONG] Song not found:", id);
+      logger.warn("Update failed: Song not found", { id });
       return res.status(404).json({ message: "Song not found" });
     }
 
-    console.log("[UPDATE_SONG] Updating song:", id);
+    logger.debug("Updating song in database", { id });
     Object.assign(song, { title, artist, album, audioUrl, imageUrl });
     await song.save();
 
-    console.log("[UPDATE_SONG] Song updated successfully:", id);
+    logger.info("Song updated successfully", { id });
     res.json({ message: "Song updated successfully", song });
   } catch (error) {
-    console.error("[UPDATE_SONG] Error:", error.message, error.stack);
+    logger.error("Error updating song", error);
     res.status(500).json({ message: "Error updating song", error: error.message });
   }
 };
@@ -289,21 +285,21 @@ export const updateSong = async (req, res) => {
 // ===============================
 export const deleteSong = async (req, res) => {
   try {
-    console.log("[DELETE_SONG] Received delete request for song ID:", req.params.id);
     const { id } = req.params;
+    logger.info("Received delete request for song", { id });
     const song = await Song.findByPk(id);
 
     if (!song) {
-      console.warn("[DELETE_SONG] Song not found:", id);
+      logger.warn("Delete failed: Song not found", { id });
       return res.status(404).json({ message: "Song not found" });
     }
 
-    console.log("[DELETE_SONG] Deleting song:", { id, title: song.title });
+    logger.debug("Deleting song from database", { id, title: song.title });
     await song.destroy();
-    console.log("[DELETE_SONG] Song deleted successfully:", id);
+    logger.info("Song deleted successfully", { id });
     res.json({ message: "Song deleted successfully" });
   } catch (error) {
-    console.error("[DELETE_SONG] Error:", error.message, error.stack);
+    logger.error("Error deleting song", error);
     res.status(500).json({ message: "Error deleting song", error: error.message });
   }
 };
@@ -313,23 +309,23 @@ export const deleteSong = async (req, res) => {
 // ===============================
 export const getSongsByPlaylist = async (req, res) => {
   try {
-    console.log("[GET_SONGS_BY_PLAYLIST] Fetching songs for playlist ID:", req.params.playlistId);
     const { playlistId } = req.params;
+    logger.info("Fetching songs for playlist", { playlistId });
 
     const playlist = await Playlist.findByPk(playlistId, {
       include: { model: Song, through: { attributes: [] } },
     });
 
     if (!playlist) {
-      console.warn("[GET_SONGS_BY_PLAYLIST] Playlist not found:", playlistId);
+      logger.warn("Get songs by playlist failed: Playlist not found", { playlistId });
       return res.status(404).json({ message: "Playlist not found" });
     }
 
     const songs = playlist.Songs || [];
-    console.log("[GET_SONGS_BY_PLAYLIST] Found", songs.length, 'songs for playlist:', playlistId);
+    logger.debug("Found songs for playlist", { playlistId, count: songs.length });
     res.json(songs);
   } catch (error) {
-    console.error("[GET_SONGS_BY_PLAYLIST] Error:", error.message, error.stack);
+    logger.error("Error getting songs by playlist", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -339,8 +335,8 @@ export const getSongsByPlaylist = async (req, res) => {
 // ===============================
 export const getSongsByUser = async (req, res) => {
   try {
-    console.log("[GET_SONGS_BY_USER] Fetching songs for user ID:", req.params.userId);
     const { userId } = req.params;
+    logger.info("Fetching songs for user", { userId });
 
     const user = await User.findByPk(userId, {
       include: [
@@ -352,17 +348,17 @@ export const getSongsByUser = async (req, res) => {
     });
 
     if (!user) {
-      console.warn("[GET_SONGS_BY_USER] User not found:", userId);
+      logger.warn("Get songs by user failed: User not found", { userId });
       return res.status(404).json({ message: "User not found" });
     }
 
     const allSongs =
       user.Playlists.flatMap((playlist) => playlist.Songs || []) || [];
 
-    console.log("[GET_SONGS_BY_USER] Found', allSongs.length, 'songs for user:', userId);
+    logger.debug("Found songs for user", { userId, count: allSongs.length });
     res.json(allSongs);
   } catch (error) {
-    console.error("[GET_SONGS_BY_USER] Error:", error.message, error.stack);
+    logger.error("Error in getSongsByUser", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
